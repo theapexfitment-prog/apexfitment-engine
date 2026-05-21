@@ -1,0 +1,390 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<ACES version="3.0">
+  <Header>
+    <Company>ApexFitment Sample Data</Company>
+    <SenderName>ApexFitment</SenderName>
+    <TransferDate>2026-05-18</TransferDate>
+    <EffectiveDate>2026-05-18</EffectiveDate>
+    <SubmissionType>FULL</SubmissionType>
+  </Header>
+
+  <!-- ═══════════════════════════════════════════════════════════
+       FORD MUSTANG GT 5.0L (S550 2015-2023)
+  ═══════════════════════════════════════════════════════════ -->
+
+  <App action="A" id="1">
+    <Year>2018</Year>
+    <Make>Ford</Make>
+    <Model>Mustang</Model>
+    <SubModel>GT</SubModel>
+    <MfrLabel>LTH-COYOTE-S550-2</MfrLabel>
+    <Qty>1</Qty>
+    <PartType>Long Tube Headers</PartType>
+    <Position></Position>
+    <Note>1-7/8in SS304 Green Catted Long Tube Headers Fits 5.0L Coyote V8</Note>
+    <Brand>Kooks</Brand>
+    <Price>1899.99</Price>
+    <Material>Stainless Steel 304</Material>
+    <Diameter>1.875</Diameter>
+    <Drivetrain>RWD</Drivetrain>
+    <EngineDisplacement>5.0L</EngineDisplacement>
+  </App>
+
+  <App action="A" id="2">
+    <Year>2019</Year>
+    <Make>Ford</Make>
+    <Model>Mustang</Model>
+    <SubModel>GT</SubModel>
+    <MfrLabel>CB-S550-ATAK-BORLA</MfrLabel>
+    <Qty>1</Qty>
+    <PartType>Cat-Back</PartType>
+    <Position></Position>
+    <Note>ATAK 3in Cat-Back Exhaust System Stainless Steel 304 5.0L Coyote</Note>
+    <Brand>Borla</Brand>
+    <Price>1399.99</Price>
+    <Material>Stainless Steel 304</Material>
+    <Diameter>3.0</Diameter>
+    <Drivetrain>RWD</Drivetrain>
+    <EngineDisplacement>5.0L</EngineDisplacement>
+  </App>
+
+  <App action="A" id="3">
+    <Year>2016</Year>
+    <Make>Ford</Make>
+    <Model>Mustang</Model>
+    <SubModel>GT</SubModel>
+    <MfrLabel>LTH-S550-HK-1875</MfrLabel>
+    <Qty>1</Qty>
+    <PartType>Long Tube Headers</PartType>
+    <Position></Position>
+    <Note>BlackHeart 1-7/8in Stainless Long Tube Headers S550 Mustang 5.0L</Note>
+    <Brand>Hooker</Brand>
+    <Price>1549.99</Price>
+    <Material>Stainless Steel 304</Material>
+    <Diameter>1.875</Diameter>
+    <Drivetrain>RWD</Drivetrain>
+    <EngineDisplacement>5.0L</EngineDisplacement>
+  </App>
+
+  <App action="A" id="4">
+    <Year>2019</Year>
+    <Make>Ford</Make>
+    <Model>Mustang</Model>
+    <SubModel>GT</SubModel>
+    <MfrLabel>SC-EFORCE-COYOTE-2019</MfrLabel>
+    <Qty>1</Qty>
+    <PartType>Supercharger Kit</PartType>
+    <Position></Position>
+    <Note>E-Force Stage 1 Street Supercharger Kit 5.0L Coyote V8 2018-2020</Note>
+    <Brand>Edelbrock</Brand>
+    <Price>7499.99</Price>
+    <Material>Cast Aluminum</Material>
+    <Diameter>0.0</Diameter>
+    <Drivetrain>RWD</Drivetrain>
+    <EngineDisplacement>5.0L</EngineDisplacement>
+  </App>
+
+  <!-- ═══════════════════════════════════════════════════════════
+       CHEVROLET CAMARO SS 6.2L (Gen 6 · 2016-2024)
+  ═══════════════════════════════════════════════════════════ -->
+
+  <App action="A" id="5">
+    <Year>2019</Year>
+    <Make>Chevrolet</Make>
+    <Model>Camaro</Model>
+    <SubModel>SS</SubModel>
+    <MfrLabel>LTH-LT1-CAM-S6-KOOKS</MfrLabel>
+    <Qty>1</Qty>
+    <PartType>Long Tube Headers</PartType>
+    <Position></Position>
+    <Note>1-7/8in Green Catted Long Tube Headers Gen 6 Camaro SS LT1 6.2L</Note>
+    <Brand>Kooks</Brand>
+    <Price>1799.99</Price>
+    <Material>Stainless Steel 304</Material>
+    <Diameter>1.875</Diameter>
+    <Drivetrain>RWD</Drivetrain>
+    <EngineDisplacement>6.2L</EngineDisplacement>
+  </App>
+
+  <App action="A" id="6">
+    <Year>2019</Year>
+    <Make>Chevrolet</Make>
+    <Model>Camaro</Model>
+    <SubModel>SS</SubModel>
+    <MfrLabel>CB-CAMARO-LT1-BORLA</MfrLabel>
+    <Qty>1</Qty>
+    <PartType>Cat-Back</PartType>
+    <Position></Position>
+    <Note>S-Type 3in Cat-Back Exhaust System Gen 6 Camaro SS 6.2L LT1 V8</Note>
+    <Brand>Borla</Brand>
+    <Price>1249.99</Price>
+    <Material>Stainless Steel 304</Material>
+    <Diameter>3.0</Diameter>
+    <Drivetrain>RWD</Drivetrain>
+    <EngineDisplacement>6.2L</EngineDisplacement>
+  </App>
+
+  <App action="A" id="7">
+    <Year>2014</Year>
+    <Make>Chevrolet</Make>
+    <Model>Camaro</Model>
+    <SubModel>SS</SubModel>
+    <MfrLabel>CB-CAMARO-SS-FM-GEN5</MfrLabel>
+    <Qty>1</Qty>
+    <PartType>Cat-Back</PartType>
+    <Position></Position>
+    <Note>American Thunder 3in Cat-Back Gen 5 Camaro SS LS3 6.2L Aluminized</Note>
+    <Brand>Flowmaster</Brand>
+    <Price>849.99</Price>
+    <Material>Aluminized Steel</Material>
+    <Diameter>3.0</Diameter>
+    <Drivetrain>RWD</Drivetrain>
+    <EngineDisplacement>6.2L</EngineDisplacement>
+  </App>
+
+  <App action="A" id="8">
+    <Year>2019</Year>
+    <Make>Chevrolet</Make>
+    <Model>Camaro</Model>
+    <SubModel>SS</SubModel>
+    <MfrLabel>SC-EFORCE-LT1-CAM19</MfrLabel>
+    <Qty>1</Qty>
+    <PartType>Supercharger Kit</PartType>
+    <Position></Position>
+    <Note>E-Force Stage 1 Supercharger Kit Gen 6 Camaro SS 6.2L LT1 V8</Note>
+    <Brand>Edelbrock</Brand>
+    <Price>6499.99</Price>
+    <Material>Cast Aluminum</Material>
+    <Diameter>0.0</Diameter>
+    <Drivetrain>RWD</Drivetrain>
+    <EngineDisplacement>6.2L</EngineDisplacement>
+  </App>
+
+  <App action="A" id="9">
+    <Year>2019</Year>
+    <Make>Chevrolet</Make>
+    <Model>Camaro</Model>
+    <SubModel>SS</SubModel>
+    <MfrLabel>CB-CAMARO-SS-HK-2019</MfrLabel>
+    <Qty>1</Qty>
+    <PartType>Cat-Back</PartType>
+    <Position></Position>
+    <Note>BlackHeart 3in Cat-Back Exhaust System Gen 6 Camaro SS LT1 2019</Note>
+    <Brand>Hooker</Brand>
+    <Price>999.99</Price>
+    <Material>Stainless Steel 304</Material>
+    <Diameter>3.0</Diameter>
+    <Drivetrain>RWD</Drivetrain>
+    <EngineDisplacement>6.2L</EngineDisplacement>
+  </App>
+
+  <!-- ═══════════════════════════════════════════════════════════
+       DODGE CHALLENGER SRT8 6.4L (2011-2023)
+  ═══════════════════════════════════════════════════════════ -->
+
+  <App action="A" id="10">
+    <Year>2015</Year>
+    <Make>Dodge</Make>
+    <Model>Challenger</Model>
+    <SubModel>SRT8</SubModel>
+    <MfrLabel>LTH-HEMI392-HK-2015</MfrLabel>
+    <Qty>1</Qty>
+    <PartType>Long Tube Headers</PartType>
+    <Position></Position>
+    <Note>BlackHeart 1-7/8in Long Tube Headers Challenger SRT8 392 HEMI 6.4L</Note>
+    <Brand>Hooker</Brand>
+    <Price>1649.99</Price>
+    <Material>Stainless Steel 304</Material>
+    <Diameter>1.875</Diameter>
+    <Drivetrain>RWD</Drivetrain>
+    <EngineDisplacement>6.4L</EngineDisplacement>
+  </App>
+
+  <App action="A" id="11">
+    <Year>2015</Year>
+    <Make>Dodge</Make>
+    <Model>Challenger</Model>
+    <SubModel>SRT8</SubModel>
+    <MfrLabel>CB-CHALLENGER-SRT8-BORLA</MfrLabel>
+    <Qty>1</Qty>
+    <PartType>Cat-Back</PartType>
+    <Position></Position>
+    <Note>ATAK 3.5in Cat-Back System Dodge Challenger SRT8 392 HEMI 6.4L RWD</Note>
+    <Brand>Borla</Brand>
+    <Price>1499.99</Price>
+    <Material>Stainless Steel 304</Material>
+    <Diameter>3.5</Diameter>
+    <Drivetrain>RWD</Drivetrain>
+    <EngineDisplacement>6.4L</EngineDisplacement>
+  </App>
+
+  <App action="A" id="12">
+    <Year>2019</Year>
+    <Make>Dodge</Make>
+    <Model>Challenger</Model>
+    <SubModel>SRT8</SubModel>
+    <MfrLabel>LTH-HEMI392-KOOKS-2019</MfrLabel>
+    <Qty>1</Qty>
+    <PartType>Long Tube Headers</PartType>
+    <Position></Position>
+    <Note>1-7/8in Green Catted Long Tube Headers Challenger 392 HEMI 6.4L</Note>
+    <Brand>Kooks</Brand>
+    <Price>1849.99</Price>
+    <Material>Stainless Steel 304</Material>
+    <Diameter>1.875</Diameter>
+    <Drivetrain>RWD</Drivetrain>
+    <EngineDisplacement>6.4L</EngineDisplacement>
+  </App>
+
+  <App action="A" id="13">
+    <Year>2020</Year>
+    <Make>Dodge</Make>
+    <Model>Challenger</Model>
+    <SubModel>SRT8</SubModel>
+    <MfrLabel>CB-CHALLENGER-SRT8-FM</MfrLabel>
+    <Qty>1</Qty>
+    <PartType>Cat-Back</PartType>
+    <Position></Position>
+    <Note>Super 44 3.5in Cat-Back Exhaust Challenger SRT8 392 HEMI 6.4L RWD</Note>
+    <Brand>Flowmaster</Brand>
+    <Price>949.99</Price>
+    <Material>Aluminized Steel</Material>
+    <Diameter>3.5</Diameter>
+    <Drivetrain>RWD</Drivetrain>
+    <EngineDisplacement>6.4L</EngineDisplacement>
+  </App>
+
+  <!-- ═══════════════════════════════════════════════════════════
+       CHEVROLET SILVERADO 1500 5.3L (2014-2019)
+  ═══════════════════════════════════════════════════════════ -->
+
+  <App action="A" id="14">
+    <Year>2018</Year>
+    <Make>Chevrolet</Make>
+    <Model>Silverado 1500</Model>
+    <SubModel></SubModel>
+    <MfrLabel>CB-SILVERADO-53-HK-2018</MfrLabel>
+    <Qty>1</Qty>
+    <PartType>Cat-Back</PartType>
+    <Position></Position>
+    <Note>BlackHeart 3in Cat-Back Exhaust Silverado 1500 5.3L Vortec V8 2014+</Note>
+    <Brand>Hooker</Brand>
+    <Price>749.99</Price>
+    <Material>Stainless Steel 304</Material>
+    <Diameter>3.0</Diameter>
+    <CabType>Crew Cab</CabType>
+    <BedLength>Standard Bed</BedLength>
+    <EngineDisplacement>5.3L</EngineDisplacement>
+  </App>
+
+  <App action="A" id="15">
+    <Year>2017</Year>
+    <Make>Chevrolet</Make>
+    <Model>Silverado 1500</Model>
+    <SubModel></SubModel>
+    <MfrLabel>CB-SILVERADO-53-FM-2017</MfrLabel>
+    <Qty>1</Qty>
+    <PartType>Cat-Back</PartType>
+    <Position></Position>
+    <Note>Force II 3in Dual Cat-Back System Silverado 1500 5.3L 2014-2018</Note>
+    <Brand>Flowmaster</Brand>
+    <Price>649.99</Price>
+    <Material>Aluminized Steel</Material>
+    <Diameter>3.0</Diameter>
+    <EngineDisplacement>5.3L</EngineDisplacement>
+  </App>
+
+  <App action="A" id="16">
+    <Year>2019</Year>
+    <Make>Chevrolet</Make>
+    <Model>Silverado 1500</Model>
+    <SubModel></SubModel>
+    <MfrLabel>CAI-SILVERADO-53-EDEL</MfrLabel>
+    <Qty>1</Qty>
+    <PartType>Cold Air Intake</PartType>
+    <Position></Position>
+    <Note>Edelbrock E-Force Cold Air Intake Kit Silverado 1500 5.3L 2014-2019</Note>
+    <Brand>Edelbrock</Brand>
+    <Price>399.99</Price>
+    <Material>Composite</Material>
+    <Diameter>0.0</Diameter>
+    <EngineDisplacement>5.3L</EngineDisplacement>
+  </App>
+
+  <!-- ═══════════════════════════════════════════════════════════
+       CHEVROLET CORVETTE C7 6.2L (2014-2019)
+  ═══════════════════════════════════════════════════════════ -->
+
+  <App action="A" id="17">
+    <Year>2016</Year>
+    <Make>Chevrolet</Make>
+    <Model>Corvette</Model>
+    <SubModel>C7</SubModel>
+    <MfrLabel>CB-C7-BORLA-ATAK-2016</MfrLabel>
+    <Qty>1</Qty>
+    <PartType>Cat-Back</PartType>
+    <Position></Position>
+    <Note>ATAK 3in Cat-Back Exhaust System C7 Corvette Stingray LT1 6.2L RWD</Note>
+    <Brand>Borla</Brand>
+    <Price>1799.99</Price>
+    <Material>Stainless Steel 304</Material>
+    <Diameter>3.0</Diameter>
+    <Drivetrain>RWD</Drivetrain>
+    <EngineDisplacement>6.2L</EngineDisplacement>
+  </App>
+
+  <App action="A" id="18">
+    <Year>2016</Year>
+    <Make>Chevrolet</Make>
+    <Model>Corvette</Model>
+    <SubModel>C7</SubModel>
+    <MfrLabel>LTH-C7-KOOKS-1875</MfrLabel>
+    <Qty>1</Qty>
+    <PartType>Long Tube Headers</PartType>
+    <Position></Position>
+    <Note>1-7/8in Green Catted Long Tube Headers C7 Corvette LT1 6.2L RWD</Note>
+    <Brand>Kooks</Brand>
+    <Price>1999.99</Price>
+    <Material>Stainless Steel 304</Material>
+    <Diameter>1.875</Diameter>
+    <Drivetrain>RWD</Drivetrain>
+    <EngineDisplacement>6.2L</EngineDisplacement>
+  </App>
+
+  <App action="A" id="19">
+    <Year>2017</Year>
+    <Make>Chevrolet</Make>
+    <Model>Corvette</Model>
+    <SubModel>C7</SubModel>
+    <MfrLabel>CB-C7-FM-2017</MfrLabel>
+    <Qty>1</Qty>
+    <PartType>Cat-Back</PartType>
+    <Position></Position>
+    <Note>Outlaw 3in Cat-Back System C7 Corvette LT1 6.2L Aluminized Steel RWD</Note>
+    <Brand>Flowmaster</Brand>
+    <Price>1049.99</Price>
+    <Material>Aluminized Steel</Material>
+    <Diameter>3.0</Diameter>
+    <Drivetrain>RWD</Drivetrain>
+    <EngineDisplacement>6.2L</EngineDisplacement>
+  </App>
+
+  <App action="A" id="20">
+    <Year>2018</Year>
+    <Make>Chevrolet</Make>
+    <Model>Corvette</Model>
+    <SubModel>C7</SubModel>
+    <MfrLabel>SC-EFORCE-C7-2018</MfrLabel>
+    <Qty>1</Qty>
+    <PartType>Supercharger Kit</PartType>
+    <Position></Position>
+    <Note>E-Force Stage 1 Supercharger Kit C7 Corvette LT1 6.2L 2014-2019 RWD</Note>
+    <Brand>Edelbrock</Brand>
+    <Price>7999.99</Price>
+    <Material>Cast Aluminum</Material>
+    <Diameter>0.0</Diameter>
+    <Drivetrain>RWD</Drivetrain>
+    <EngineDisplacement>6.2L</EngineDisplacement>
+  </App>
+
+</ACES>

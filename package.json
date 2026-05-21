@@ -1,0 +1,24 @@
+{
+  "name": "leadmechanic-core",
+  "version": "1.0.0",
+  "description": "LeadMechanic OS - Núcleo de estimación para escapes de camiones",
+  "main": "src/truck_estimator.js",
+  "scripts": {
+    "init-db": "node src/init_db.js",
+    "start": "node src/truck_estimator.js",
+    "dev": "node src/init_db.js && node src/truck_estimator.js",
+    "import-aces": "node src/aces_parser.js",
+    "import-aces-file": "node src/aces_parser.js"
+  },
+  "dependencies": {
+    "express": "^4.22.2",
+    "pdfkit": "^0.18.0",
+    "sql.js": "^1.12.0",
+    "sqlite3": "^6.0.1",
+    "xml2js": "^0.6.2"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "type": "commonjs"
+}

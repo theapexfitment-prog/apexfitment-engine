@@ -1,0 +1,791 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>ApexFitment — Deterministic Compatibility Engine</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@300;400;500;600;700&display=swap" rel="stylesheet" />
+  <style>
+    :root {
+      --bg:          #0a0a0f;
+      --surface:     #0f0f16;
+      --surface-2:   #13131c;
+      --border:      #1e1e2e;
+      --border-lit:  #2a2a40;
+      --accent:      #00d4ff;
+      --accent-dim:  rgba(0, 212, 255, 0.08);
+      --accent-glow: rgba(0, 212, 255, 0.18);
+      --green:       #00ff88;
+      --green-dim:   rgba(0, 255, 136, 0.08);
+      --green-glow:  rgba(0, 255, 136, 0.18);
+      --red:         #ff4466;
+      --amber:       #ffaa00;
+      --muted:       #3a3a52;
+      --text:        #e2e2f0;
+      --text-dim:    #6b6b8a;
+      --text-bright: #ffffff;
+      --radius:      6px;
+      --font:        'JetBrains Mono', 'Courier New', monospace;
+    }
+
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    html { scroll-behavior: smooth; }
+
+    body {
+      background: var(--bg);
+      color: var(--text);
+      font-family: var(--font);
+      font-size: 13px;
+      line-height: 1.6;
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+    }
+
+    body::before {
+      content: '';
+      position: fixed; inset: 0; pointer-events: none;
+      background-image:
+        linear-gradient(rgba(0,212,255,.015) 1px, transparent 1px),
+        linear-gradient(90deg, rgba(0,212,255,.015) 1px, transparent 1px);
+      background-size: 40px 40px;
+      z-index: 0;
+    }
+
+    body::after {
+      content: '';
+      position: fixed; inset: 0; pointer-events: none;
+      background: repeating-linear-gradient(0deg, transparent, transparent 3px, rgba(0,0,0,.06) 3px, rgba(0,0,0,.06) 4px);
+      z-index: 0;
+    }
+
+    .container {
+      position: relative; z-index: 1;
+      width: 100%; max-width: 960px;
+      margin: 0 auto; padding: 0 24px;
+      flex: 1; display: flex; flex-direction: column;
+    }
+
+    /* ── Header ─────────────────────────────────────────────────────────── */
+    header {
+      position: relative; z-index: 1; width: 100%;
+      border-bottom: 1px solid var(--border);
+      background: linear-gradient(180deg, rgba(0,212,255,.04) 0%, transparent 100%);
+    }
+    .header-inner {
+      max-width: 960px; margin: 0 auto; padding: 20px 24px;
+      display: flex; align-items: center; gap: 16px;
+    }
+    .logo-mark { display: flex; align-items: center; gap: 12px; }
+    .logo-hex {
+      width: 40px; height: 40px; border: 1.5px solid var(--accent); border-radius: 4px;
+      display: grid; place-items: center; font-size: 18px;
+      background: var(--accent-dim); box-shadow: 0 0 16px var(--accent-glow); flex-shrink: 0;
+    }
+    .logo-text { display: flex; flex-direction: column; }
+    .logo-text .brand {
+      font-size: 15px; font-weight: 700; letter-spacing: .18em;
+      color: var(--accent); text-shadow: 0 0 20px var(--accent-glow); text-transform: uppercase;
+    }
+    .logo-text .tagline { font-size: 10px; color: var(--text-dim); letter-spacing: .06em; margin-top: 1px; }
+    .header-right { margin-left: auto; display: flex; align-items: center; gap: 20px; }
+    .sys-badge {
+      display: flex; align-items: center; gap: 7px;
+      font-size: 10px; font-weight: 600; letter-spacing: .12em; color: var(--green); text-transform: uppercase;
+      padding: 5px 10px; border: 1px solid rgba(0,255,136,.2); border-radius: 4px; background: rgba(0,255,136,.04);
+    }
+    .sys-badge .dot {
+      width: 7px; height: 7px; border-radius: 50%; background: var(--green);
+      box-shadow: 0 0 8px var(--green); animation: pulse 2s ease-in-out infinite;
+    }
+    @keyframes pulse {
+      0%, 100% { opacity: 1; box-shadow: 0 0 8px var(--green); }
+      50%       { opacity: .4; box-shadow: none; }
+    }
+    .ver-tag { font-size: 10px; color: var(--muted); letter-spacing: .06em; }
+
+    /* ── Main layout ────────────────────────────────────────────────────── */
+    .main-grid {
+      display: grid; grid-template-columns: 380px 1fr;
+      gap: 16px; padding: 24px 0 16px; flex: 1; align-items: start;
+    }
+    @media (max-width: 760px) { .main-grid { grid-template-columns: 1fr; } }
+
+    /* ── Panel ──────────────────────────────────────────────────────────── */
+    .panel { background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius); overflow: hidden; }
+    .panel-header {
+      padding: 10px 16px; border-bottom: 1px solid var(--border);
+      display: flex; align-items: center; gap: 8px; background: var(--surface-2);
+    }
+    .panel-header .ph-dot { width: 6px; height: 6px; border-radius: 50%; background: var(--accent); box-shadow: 0 0 6px var(--accent); }
+    .panel-header .ph-title { font-size: 10px; font-weight: 600; letter-spacing: .14em; color: var(--accent); text-transform: uppercase; }
+    .panel-header .ph-sub { margin-left: auto; font-size: 10px; color: var(--muted); }
+    .panel-body { padding: 16px; }
+
+    /* ── Form fields ────────────────────────────────────────────────────── */
+    .form-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+    .field { display: flex; flex-direction: column; gap: 5px; }
+    .field.full { grid-column: 1 / -1; }
+    .field label { font-size: 10px; font-weight: 500; letter-spacing: .1em; color: var(--text-dim); text-transform: uppercase; }
+
+    .field input, .field select {
+      background: var(--bg); border: 1px solid var(--border-lit); border-radius: 4px;
+      color: var(--text); font-family: var(--font); font-size: 12px; padding: 8px 10px;
+      outline: none; transition: border-color .15s, box-shadow .15s; width: 100%;
+      appearance: none; -webkit-appearance: none;
+    }
+    .field input:focus, .field select:focus {
+      border-color: var(--accent); box-shadow: 0 0 0 2px rgba(0,212,255,.12);
+    }
+    .field input::placeholder { color: var(--muted); }
+    .field select option { background: #0f0f16; color: var(--text); }
+
+    /* ── Buttons ────────────────────────────────────────────────────────── */
+    .btn-run {
+      width: 100%; margin-top: 10px; padding: 11px;
+      background: transparent; border: 1.5px solid var(--accent); border-radius: 4px;
+      color: var(--accent); font-family: var(--font); font-size: 11px; font-weight: 700;
+      letter-spacing: .18em; text-transform: uppercase; cursor: pointer;
+      transition: background .15s, box-shadow .15s, color .15s;
+      display: flex; align-items: center; justify-content: center; gap: 8px;
+    }
+    .btn-run:hover { background: var(--accent-dim); box-shadow: 0 0 20px var(--accent-glow); color: var(--text-bright); }
+    .btn-run:active { transform: scale(.99); }
+    .btn-run:disabled { border-color: var(--muted); color: var(--muted); cursor: not-allowed; box-shadow: none; background: transparent; }
+
+    .btn-quote {
+      width: 100%; margin-top: 8px; padding: 11px;
+      background: transparent; border: 1.5px solid var(--green); border-radius: 4px;
+      color: var(--green); font-family: var(--font); font-size: 11px; font-weight: 700;
+      letter-spacing: .18em; text-transform: uppercase; cursor: pointer;
+      transition: background .15s, box-shadow .15s, color .15s;
+      display: flex; align-items: center; justify-content: center; gap: 8px;
+    }
+    .btn-quote:hover { background: var(--green-dim); box-shadow: 0 0 20px var(--green-glow); color: var(--text-bright); }
+    .btn-quote:active { transform: scale(.99); }
+    .btn-quote:disabled { border-color: var(--muted); color: var(--muted); cursor: not-allowed; box-shadow: none; background: transparent; }
+
+    .btn-pdf {
+      width: 100%; margin-top: 8px; padding: 11px;
+      background: transparent; border: 1.5px solid #ffb800; border-radius: 4px;
+      color: #ffb800; font-family: var(--font); font-size: 11px; font-weight: 700;
+      letter-spacing: .18em; text-transform: uppercase; cursor: pointer;
+      transition: background .15s, box-shadow .15s, color .15s;
+      display: flex; align-items: center; justify-content: center; gap: 8px;
+    }
+    .btn-pdf:hover { background: rgba(255,184,0,.08); box-shadow: 0 0 20px rgba(255,184,0,.2); color: var(--text-bright); }
+    .btn-pdf:active { transform: scale(.99); }
+    .btn-pdf:disabled { border-color: var(--muted); color: var(--muted); cursor: not-allowed; box-shadow: none; background: transparent; }
+
+    .btn-spinner {
+      width: 12px; height: 12px; border: 1.5px solid var(--muted);
+      border-radius: 50%; animation: spin .7s linear infinite; display: none; flex-shrink: 0;
+    }
+    .btn-run.loading   .btn-spinner { display: block; border-top-color: var(--accent); }
+    .btn-quote.loading .btn-spinner { display: block; border-top-color: var(--green); }
+    .btn-pdf.loading   .btn-spinner { display: block; border-top-color: #ffb800; }
+    .btn-run.loading   .btn-label { display: none; }
+    .btn-quote.loading .btn-label { display: none; }
+    .btn-pdf.loading   .btn-label { display: none; }
+    @keyframes spin { to { transform: rotate(360deg); } }
+
+    /* ── Query preview ───────────────────────────────────────────────────── */
+    .query-preview {
+      margin-top: 12px; background: var(--bg); border: 1px solid var(--border);
+      border-radius: 4px; padding: 10px 12px; font-size: 10px; color: var(--muted);
+      line-height: 1.8; display: none;
+    }
+    .query-preview.visible { display: block; }
+    .query-preview .qp-key { color: var(--text-dim); }
+    .query-preview .qp-val { color: var(--accent); }
+
+    /* ── Results panel ───────────────────────────────────────────────────── */
+    .results-panel { display: flex; flex-direction: column; }
+    #results-body { flex: 1; padding: 16px; overflow-y: auto; min-height: 360px; max-height: 620px; }
+
+    .placeholder-state {
+      height: 100%; min-height: 300px; display: flex; flex-direction: column;
+      align-items: center; justify-content: center; gap: 10px; color: var(--muted);
+    }
+    .placeholder-state .ph-icon { font-size: 28px; opacity: .4; }
+    .placeholder-state p { font-size: 11px; text-align: center; letter-spacing: .06em; }
+
+    /* ── Status bar ──────────────────────────────────────────────────────── */
+    .status-bar {
+      padding: 8px 16px; border-top: 1px solid var(--border); background: var(--surface-2);
+      display: flex; align-items: center; gap: 10px; font-size: 10px; color: var(--muted);
+    }
+    .sb-status { font-weight: 600; text-transform: uppercase; letter-spacing: .08em; }
+    .sb-status.ok    { color: var(--green); }
+    .sb-status.error { color: var(--red); }
+    .sb-status.empty { color: var(--amber); }
+    .sb-time { margin-left: auto; }
+
+    /* ── Fitment result cards ────────────────────────────────────────────── */
+    .result-entry {
+      border: 1px solid var(--border); border-left: 3px solid var(--accent);
+      border-radius: 4px; padding: 12px 14px; margin-bottom: 10px;
+      background: var(--surface-2); animation: fadeIn .2s ease both;
+    }
+    @keyframes fadeIn { from { opacity: 0; transform: translateY(4px); } to { opacity: 1; transform: translateY(0); } }
+    .re-header { display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 8px; }
+    .re-brand { font-size: 9px; font-weight: 600; letter-spacing: .14em; color: var(--accent); text-transform: uppercase; }
+    .re-type { font-size: 9px; padding: 2px 6px; border: 1px solid var(--border-lit); border-radius: 3px; color: var(--text-dim); text-transform: uppercase; letter-spacing: .08em; }
+    .re-name { font-size: 13px; font-weight: 600; color: var(--text-bright); margin-bottom: 6px; }
+    .re-meta { display: flex; flex-wrap: wrap; gap: 6px; margin-bottom: 8px; }
+    .re-chip { font-size: 9px; padding: 2px 7px; border: 1px solid var(--border); border-radius: 3px; color: var(--text-dim); background: var(--bg); }
+    .re-price { font-size: 18px; font-weight: 700; color: var(--green); letter-spacing: .02em; }
+    .re-price span { font-size: 11px; font-weight: 400; color: var(--text-dim); margin-left: 4px; }
+    .raw-toggle { font-size: 10px; color: var(--text-dim); cursor: pointer; text-decoration: underline; text-underline-offset: 3px; margin-top: 4px; display: inline-block; }
+    .raw-toggle:hover { color: var(--accent); }
+    pre.raw-json {
+      display: none; margin-top: 10px; background: var(--bg); border: 1px solid var(--border);
+      border-radius: 4px; padding: 12px; font-size: 10px; color: var(--text-dim);
+      overflow-x: auto; white-space: pre-wrap; word-break: break-word; line-height: 1.7;
+    }
+    pre.raw-json.visible { display: block; }
+    pre.raw-json .json-key  { color: #7c9cbf; }
+    pre.raw-json .json-str  { color: #a5d6a7; }
+    pre.raw-json .json-num  { color: #ffcc80; }
+    pre.raw-json .json-null { color: #ef9a9a; }
+
+    /* ── Quote table ────────────────────────────────────────────────────── */
+    .quote-table-wrap { overflow-x: auto; margin-bottom: 16px; animation: fadeIn .2s ease both; }
+
+    table.qt {
+      width: 100%; border-collapse: collapse; font-size: 10px;
+    }
+    table.qt thead tr { background: var(--surface-2); border-bottom: 1px solid var(--border); }
+    table.qt thead th {
+      padding: 7px 10px; text-align: left; font-weight: 600; letter-spacing: .1em;
+      color: var(--accent); text-transform: uppercase; white-space: nowrap;
+    }
+    table.qt tbody tr { border-bottom: 1px solid var(--border); transition: background .1s; }
+    table.qt tbody tr:hover { background: var(--surface-2); }
+    table.qt tbody td { padding: 8px 10px; color: var(--text); vertical-align: middle; }
+    table.qt tbody td.num { text-align: right; color: var(--text-dim); font-variant-numeric: tabular-nums; }
+    table.qt tbody td.total { text-align: right; color: var(--green); font-weight: 600; }
+    table.qt .td-brand { font-weight: 600; color: var(--text-bright); }
+    table.qt .td-type {
+      font-size: 9px; padding: 2px 6px; border: 1px solid var(--border-lit);
+      border-radius: 3px; color: var(--text-dim); text-transform: uppercase;
+      letter-spacing: .06em; display: inline-block;
+    }
+
+    /* ── Quote summary block ────────────────────────────────────────────── */
+    .quote-summary {
+      background: var(--surface-2); border: 1px solid var(--border);
+      border-top: 3px solid var(--green); border-radius: 4px;
+      padding: 16px 20px; animation: fadeIn .25s ease both;
+    }
+    .qs-row {
+      display: flex; justify-content: space-between; align-items: baseline;
+      font-size: 11px; color: var(--text-dim); padding: 4px 0;
+      font-variant-numeric: tabular-nums;
+    }
+    .qs-divider-thin   { border-top: 1px solid var(--border);  margin: 6px 0; }
+    .qs-divider-double { border-top: 3px double var(--border-lit); margin: 8px 0; }
+    .qs-row.grand .qs-label { color: var(--text-bright); font-weight: 700; font-size: 13px; letter-spacing: .08em; text-transform: uppercase; }
+    .qs-row.grand .qs-val   { color: var(--green); font-weight: 700; font-size: 1.4rem; letter-spacing: .02em; text-shadow: 0 0 16px var(--green-glow); }
+    .qs-meta { font-size: 9px; color: var(--muted); margin-top: 10px; text-align: right; letter-spacing: .06em; }
+
+    /* ── Selectable part cards ──────────────────────────────────────────────── */
+    .select-toggle-bar {
+      display: flex; align-items: center; justify-content: space-between;
+      padding: 0 0 10px; margin-bottom: 2px;
+    }
+    .toggle-sel-btn {
+      font-family: var(--font); font-size: 9px; font-weight: 600; letter-spacing: .12em;
+      color: var(--text-dim); background: transparent; border: 1px solid var(--border-lit);
+      border-radius: 3px; padding: 4px 10px; cursor: pointer; text-transform: uppercase;
+      transition: color .15s, border-color .15s;
+    }
+    .toggle-sel-btn:hover { color: var(--accent); border-color: var(--accent); }
+    .sel-counter { font-size: 10px; color: var(--text-dim); letter-spacing: .04em; }
+    .sel-counter .sel-price { color: var(--green); font-weight: 600; }
+
+    .part-card {
+      display: flex; align-items: center; gap: 12px;
+      border: 1px solid var(--border); border-radius: 4px; padding: 10px 12px;
+      margin-bottom: 8px; background: var(--surface-2);
+      cursor: pointer; transition: border-color .15s, background .15s;
+      user-select: none; animation: fadeIn .18s ease both;
+    }
+    .part-card:has(input:checked) { border-color: var(--accent); background: var(--accent-dim); }
+    .part-card input[type=checkbox] {
+      width: 15px; height: 15px; flex-shrink: 0;
+      accent-color: var(--accent); cursor: pointer;
+    }
+    .part-card-body { flex: 1; min-width: 0; }
+    .pc-header { display: flex; align-items: center; gap: 8px; margin-bottom: 3px; }
+    .pc-name { font-size: 11px; font-weight: 600; color: var(--text-bright); margin-bottom: 2px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+    .pc-meta { font-size: 9px; color: var(--text-dim); }
+    .pc-price { font-size: 13px; font-weight: 700; color: var(--green); flex-shrink: 0; letter-spacing: .01em; }
+
+    /* ── State cards ────────────────────────────────────────────────────── */
+    .state-card { padding: 16px; border-radius: 4px; font-size: 11px; line-height: 1.7; }
+    .state-card.error { border: 1px solid rgba(255,68,102,.3); background: rgba(255,68,102,.05); color: var(--red); }
+    .state-card.empty { border: 1px solid rgba(255,170,0,.2); background: rgba(255,170,0,.04); color: var(--amber); }
+    .state-card .sc-code { font-size: 10px; font-weight: 700; letter-spacing: .1em; margin-bottom: 4px; }
+
+    /* ── Footer ─────────────────────────────────────────────────────────── */
+    footer {
+      position: relative; z-index: 1; border-top: 1px solid var(--border);
+      padding: 12px 24px; text-align: center; font-size: 10px; color: var(--muted); letter-spacing: .08em;
+    }
+    footer span { color: var(--text-dim); }
+  </style>
+</head>
+<body>
+
+  <header>
+    <div class="header-inner">
+      <div class="logo-mark">
+        <div class="logo-hex">⬡</div>
+        <div class="logo-text">
+          <span class="brand">ApexFitment</span>
+          <span class="tagline">Deterministic Compatibility. Zero Guesswork.</span>
+        </div>
+      </div>
+      <div class="header-right">
+        <span class="ver-tag">ENGINE v1.0</span>
+        <div class="sys-badge"><div class="dot"></div>SYSTEM ONLINE</div>
+      </div>
+    </div>
+  </header>
+
+  <div class="container">
+    <div class="main-grid">
+
+      <!-- ── Left: Query builder ── -->
+      <div class="panel">
+        <div class="panel-header">
+          <div class="ph-dot"></div>
+          <span class="ph-title">Build Configuration</span>
+          <span class="ph-sub">/webhook/sms · /quote</span>
+        </div>
+        <div class="panel-body">
+          <div class="form-grid">
+
+            <div class="field">
+              <label for="f-year">Year</label>
+              <input id="f-year" type="text" placeholder="e.g. 2018" value="2018" />
+            </div>
+            <div class="field">
+              <label for="f-make">Make</label>
+              <input id="f-make" type="text" placeholder="e.g. Ford" value="Ford" />
+            </div>
+            <div class="field full">
+              <label for="f-model">Model</label>
+              <input id="f-model" type="text" placeholder="e.g. Mustang GT" value="Mustang GT" />
+            </div>
+            <div class="field full">
+              <label for="f-submodel">Submodel / Payload Class <span style="color:var(--muted);font-weight:400">(optional)</span></label>
+              <input id="f-submodel" type="text" placeholder="e.g. 1500HD, SRT Hellcat (optional)" value="" />
+            </div>
+            <div class="field">
+              <label for="f-cab">Cab Type</label>
+              <input id="f-cab" type="text" placeholder="e.g. Crew Cab" value="" />
+            </div>
+            <div class="field">
+              <label for="f-bed">Bed Length</label>
+              <input id="f-bed" type="text" placeholder="e.g. Standard Bed" value="" />
+            </div>
+            <div class="field full">
+              <label for="f-engine">Engine Displacement</label>
+              <input id="f-engine" type="text" placeholder="e.g. 5.0L" value="5.0L" />
+            </div>
+            <div class="field full">
+              <label for="f-type">Product Type Filter</label>
+              <select id="f-type">
+                <option value="">All Types</option>
+                <option value="Cat-Back">Cat-Back</option>
+                <option value="Long Tube Headers">Long Tube Headers</option>
+                <option value="Supercharger Kit">Supercharger Kit</option>
+                <option value="Cold Air Intake">Cold Air Intake</option>
+                <option value="Camshaft Kit">Camshaft Kit</option>
+                <option value="Transmission">Transmission</option>
+              </select>
+            </div>
+
+          </div>
+
+          <button class="btn-run" id="btn-run" onclick="runCompatibility()">
+            <div class="btn-spinner"></div>
+            <span class="btn-label">&#x25B6; RUN COMPATIBILITY QUERY</span>
+          </button>
+
+          <button class="btn-quote" id="btn-quote" onclick="runQuote()">
+            <div class="btn-spinner"></div>
+            <span class="btn-label">&#x26A1; GENERATE QUOTE</span>
+          </button>
+
+          <button class="btn-pdf" id="btn-pdf" onclick="exportPdf()">
+            <div class="btn-spinner"></div>
+            <span class="btn-label">&#x2193; EXPORT PDF</span>
+          </button>
+
+          <div class="query-preview" id="query-preview"></div>
+        </div>
+      </div>
+
+      <!-- ── Right: Results ── -->
+      <div class="panel results-panel">
+        <div class="panel-header">
+          <div class="ph-dot"></div>
+          <span class="ph-title">Results</span>
+          <span class="ph-sub" id="result-count">—</span>
+        </div>
+        <div id="results-body">
+          <div class="placeholder-state" id="placeholder">
+            <div class="ph-icon">⬡</div>
+            <p>Awaiting query execution.<br/>Configure build parameters and run the engine.</p>
+          </div>
+        </div>
+        <div class="status-bar">
+          <span class="sb-status" id="sb-status">IDLE</span>
+          <span id="sb-detail">—</span>
+          <span class="sb-time sb-time" id="sb-time">—</span>
+        </div>
+      </div>
+
+    </div>
+  </div>
+
+  <footer>
+    <span>ApexFitment Engine v1.0</span> &nbsp;·&nbsp; B2B Infrastructure &nbsp;·&nbsp; Texas
+  </footer>
+
+<script>
+  function ts() { return new Date().toLocaleTimeString('en-US', { hour12: false }); }
+
+  function fmt(n) { return '$' + Number(n).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 }); }
+
+  function setStatus(cls, label, detail) {
+    const el = document.getElementById('sb-status');
+    el.className = 'sb-status ' + cls;
+    el.textContent = label;
+    document.getElementById('sb-detail').textContent = detail;
+    document.getElementById('sb-time').textContent = ts();
+  }
+
+  function syntaxHighlight(json) {
+    return json
+      .replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;')
+      .replace(/("(\\u[a-zA-Z0-9]{4}|\\[^u]|[^\\"])*"(\s*:)?|\b(true|false|null)\b|-?\d+(?:\.\d*)?(?:[eE][+\-]?\d+)?)/g, (m) => {
+        let cls = 'json-num';
+        if (/^"/.test(m)) cls = /:$/.test(m) ? 'json-key' : 'json-str';
+        else if (/null/.test(m)) cls = 'json-null';
+        return `<span class="${cls}">${m}</span>`;
+      });
+  }
+
+  function escHtml(s) {
+    if (s == null) return '';
+    return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+  }
+
+  function collectPayload() {
+    const year    = document.getElementById('f-year').value.trim();
+    const make    = document.getElementById('f-make').value.trim();
+    const model   = document.getElementById('f-model').value.trim();
+    const submodel= document.getElementById('f-submodel').value.trim();
+    const cab     = document.getElementById('f-cab').value.trim();
+    const bed     = document.getElementById('f-bed').value.trim();
+    const engine  = document.getElementById('f-engine').value.trim();
+    const type    = document.getElementById('f-type').value.trim();
+
+    const payload = {
+      vehicle_chassis: {
+        year:  year ? Number(year) : undefined,
+        make:  make  || undefined,
+        model: model || undefined,
+        ...(submodel ? { submodel_payload_chassis: submodel } : {}),
+        ...(cab      ? { cab_type: cab }                      : {}),
+        ...(bed      ? { bed_length: bed }                    : {}),
+      },
+      powertrain: {
+        ...(engine ? { engine_displacement_liters: engine } : {}),
+      },
+      product_type_filter: type || null,
+    };
+
+    // Update preview
+    const qp = document.getElementById('query-preview');
+    qp.classList.add('visible');
+    qp.innerHTML = Object.entries({
+      year, make, model,
+      submodel_payload_chassis: submodel || '(any)',
+      cab_type: cab || '(any)', bed_length: bed || '(any)',
+      engine_displacement: engine || '(any)',
+      product_type_filter: type || '(all)',
+    }).map(([k, v]) =>
+      `<span class="qp-key">${k.padEnd(24)}</span><span class="qp-val">${v}</span>`
+    ).join('<br/>');
+
+    return payload;
+  }
+
+  function setLoading(btnId, on) {
+    const btn = document.getElementById(btnId);
+    btn.disabled = on;
+    if (on) btn.classList.add('loading'); else btn.classList.remove('loading');
+  }
+
+  function setAllLoading(on) {
+    setLoading('btn-run',   on);
+    setLoading('btn-quote', on);
+    setLoading('btn-pdf',   on);
+  }
+
+  // ── Compatibility query ──────────────────────────────────────────────────
+  async function runCompatibility() {
+    setAllLoading(true);
+    const payload = collectPayload();
+    setStatus('', 'QUERYING', 'Fitment matrix lookup…');
+    const t0 = performance.now();
+    try {
+      const res  = await fetch('/webhook/sms', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(payload) });
+      const data = await res.json();
+      renderCompatibility(res.status, data, (performance.now() - t0).toFixed(0));
+    } catch (e) {
+      renderNetworkError(e.message, (performance.now() - t0).toFixed(0));
+    }
+    setAllLoading(false);
+  }
+
+  // ── Quote ────────────────────────────────────────────────────────────────
+  async function runQuote() {
+    const checksExist   = document.querySelectorAll('.part-chk').length > 0;
+    const selectedParts = getSelectedParts();
+    if (checksExist && selectedParts.length === 0) {
+      hidePlaceholder();
+      document.getElementById('results-body').innerHTML =
+        stateCard('empty', 'NO_PARTS_SELECTED', 'Select at least one part before generating a quote.');
+      setStatus('empty', 'NO PARTS', 'Check at least one part in the list');
+      return;
+    }
+    setAllLoading(true);
+    const payload = collectPayload();
+    if (selectedParts.length > 0) payload.selected_part_numbers = selectedParts;
+    setStatus('', 'QUOTING', 'Computing parts + labor estimate…');
+    const t0 = performance.now();
+    try {
+      const res  = await fetch('/quote', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(payload) });
+      const data = await res.json();
+      renderQuote(res.status, data, (performance.now() - t0).toFixed(0));
+    } catch (e) {
+      renderNetworkError(e.message, (performance.now() - t0).toFixed(0));
+    }
+    setAllLoading(false);
+  }
+
+  // ── Export PDF ───────────────────────────────────────────────────────────
+  async function exportPdf() {
+    const checksExist   = document.querySelectorAll('.part-chk').length > 0;
+    const selectedParts = getSelectedParts();
+    if (checksExist && selectedParts.length === 0) {
+      hidePlaceholder();
+      document.getElementById('results-body').innerHTML =
+        stateCard('empty', 'NO_PARTS_SELECTED', 'Select at least one part before generating a quote.');
+      setStatus('empty', 'NO PARTS', 'Check at least one part in the list');
+      return;
+    }
+    setAllLoading(true);
+    const payload = collectPayload();
+    if (selectedParts.length > 0) payload.selected_part_numbers = selectedParts;
+    setStatus('', 'GENERATING PDF', 'Building quote document…');
+    const t0 = performance.now();
+    try {
+      const res = await fetch('/export-pdf', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(payload) });
+      if (!res.ok) {
+        const data = await res.json().catch(() => ({}));
+        renderNetworkError((data.error || data.status || `HTTP ${res.status}`), (performance.now() - t0).toFixed(0));
+      } else {
+        const blob = await res.blob();
+        const url  = URL.createObjectURL(blob);
+        const a    = document.createElement('a');
+        const cd   = res.headers.get('Content-Disposition') || '';
+        const match = cd.match(/filename="([^"]+)"/);
+        a.download = match ? match[1] : 'ApexFitment-Quote.pdf';
+        a.href = url;
+        document.body.appendChild(a);
+        a.click();
+        a.remove();
+        URL.revokeObjectURL(url);
+        setStatus('ok', 'PDF READY', `Downloaded · ${(performance.now() - t0).toFixed(0)}ms`);
+      }
+    } catch (e) {
+      renderNetworkError(e.message, (performance.now() - t0).toFixed(0));
+    }
+    setAllLoading(false);
+  }
+
+  // ── Selection helpers ────────────────────────────────────────────────────
+  function updateSelectionCounter() {
+    const checks = document.querySelectorAll('.part-chk');
+    if (!checks.length) return;
+    let selected = 0, price = 0;
+    checks.forEach(c => { if (c.checked) { selected++; price += parseFloat(c.dataset.price) || 0; } });
+    const total = checks.length;
+    const counter = document.getElementById('sel-counter');
+    if (counter) counter.innerHTML =
+      `${selected} of ${total} parts selected &nbsp;·&nbsp; <span class="sel-price">${fmt(price)}</span> parts est.`;
+    const btn = document.querySelector('.toggle-sel-btn');
+    if (btn) btn.textContent = selected === total ? 'DESELECT ALL' : 'SELECT ALL';
+  }
+
+  function toggleSelectAll() {
+    const checks = document.querySelectorAll('.part-chk');
+    const allChecked = Array.from(checks).every(c => c.checked);
+    checks.forEach(c => { c.checked = !allChecked; });
+    updateSelectionCounter();
+  }
+
+  function getSelectedParts() {
+    return Array.from(document.querySelectorAll('.part-chk:checked')).map(c => c.dataset.part);
+  }
+
+  // ── Renderers ────────────────────────────────────────────────────────────
+  function renderCompatibility(status, data, elapsed) {
+    const body = document.getElementById('results-body');
+    hidePlaceholder();
+
+    if (status >= 500) {
+      setStatus('error', 'ENGINE ERROR', `${data.error} · ${elapsed}ms`);
+      document.getElementById('result-count').textContent = 'ERROR';
+      body.innerHTML = stateCard('error', data.error, data.detail); return;
+    }
+    if (status === 400) {
+      setStatus('error', 'INVALID PAYLOAD', `${data.error} · ${elapsed}ms`);
+      document.getElementById('result-count').textContent = 'REJECTED';
+      body.innerHTML = stateCard('error', data.error, data.detail); return;
+    }
+    if (status === 404 || data.status === 'NO_MATCH') {
+      setStatus('empty', 'NO MATCH', `0 records · ${elapsed}ms`);
+      document.getElementById('result-count').textContent = '0 matches';
+      body.innerHTML = stateCard('empty', 'NO_MATCH', data.message); return;
+    }
+
+    const results = data.results || [];
+    setStatus('ok', 'MATCH FOUND', `${results.length} record${results.length !== 1 ? 's' : ''} · ${elapsed}ms — select parts then click GENERATE QUOTE`);
+    document.getElementById('result-count').textContent = `${results.length} match${results.length !== 1 ? 'es' : ''}`;
+
+    const cards = results.map((r, i) => `
+      <label class="part-card" for="chk-${i}">
+        <input type="checkbox" id="chk-${i}" class="part-chk"
+               data-part="${escHtml(r.part_number)}" data-price="${r.base_price_usd}"
+               checked onchange="updateSelectionCounter()">
+        <div class="part-card-body">
+          <div class="pc-header">
+            <span class="re-brand">${escHtml(r.brand)}</span>
+            <span class="re-type">${escHtml(r.product_type)}</span>
+          </div>
+          <div class="pc-name">${escHtml(r.part_number)}${r.line_name ? ' — ' + escHtml(r.line_name) : ''}</div>
+          <div class="pc-meta">
+            ${r.fit_year} ${escHtml(r.fit_make)} ${escHtml(r.fit_model)}
+            ${r.fit_engine_displacement ? ' · ' + escHtml(r.fit_engine_displacement) : ''}
+            ${r.fit_payload_chassis ? ' · ' + escHtml(r.fit_payload_chassis) : ''}
+          </div>
+        </div>
+        <div class="pc-price">${fmt(r.base_price_usd)}</div>
+      </label>`).join('');
+
+    body.innerHTML = `
+      <div class="select-toggle-bar">
+        <button class="toggle-sel-btn" onclick="toggleSelectAll()">DESELECT ALL</button>
+        <span class="sel-counter" id="sel-counter"></span>
+      </div>
+      ${cards}`;
+
+    updateSelectionCounter();
+  }
+
+  function renderQuote(status, data, elapsed) {
+    const body = document.getElementById('results-body');
+    hidePlaceholder();
+
+    if (status >= 500) {
+      setStatus('error', 'ENGINE ERROR', `${data.error} · ${elapsed}ms`);
+      document.getElementById('result-count').textContent = 'ERROR';
+      body.innerHTML = stateCard('error', data.error, data.detail); return;
+    }
+    if (status === 400) {
+      setStatus('error', 'INVALID PAYLOAD', `${data.error} · ${elapsed}ms`);
+      document.getElementById('result-count').textContent = 'REJECTED';
+      body.innerHTML = stateCard('error', data.error, data.detail); return;
+    }
+    if (status === 404 || data.status === 'NO_QUOTE') {
+      setStatus('empty', 'NO QUOTE', `0 parts · ${elapsed}ms`);
+      document.getElementById('result-count').textContent = 'no quote';
+      body.innerHTML = stateCard('empty', 'NO_QUOTE', data.message); return;
+    }
+
+    if (data.status !== 'QUOTE_READY') {
+      setStatus('error', 'UNEXPECTED RESPONSE', `status=${data.status} · ${elapsed}ms`);
+      document.getElementById('result-count').textContent = 'ERROR';
+      body.innerHTML = stateCard('error', 'UNEXPECTED_STATUS', `Expected QUOTE_READY, got: ${data.status}`); return;
+    }
+
+    const items = data.line_items || [];
+    const s     = data.summary;
+    setStatus('ok', 'QUOTE READY', `${items.length} line item${items.length !== 1 ? 's' : ''} · ${fmt(s.grand_total_usd)} total`);
+    document.getElementById('result-count').textContent = `${items.length} items · ${fmt(s.grand_total_usd)}`;
+
+    const rows = items.map(li => `
+      <tr>
+        <td>${escHtml(li.part_number)}</td>
+        <td class="td-brand">${escHtml(li.brand)}</td>
+        <td><span class="td-type">${escHtml(li.product_type)}</span></td>
+        <td class="num">${fmt(li.base_price_usd)}</td>
+        <td class="num">${li.labor_hours}h</td>
+        <td class="num">${fmt(li.labor_cost_usd)}</td>
+        <td class="total">${fmt(li.line_total_usd)}</td>
+      </tr>`).join('');
+
+    body.innerHTML = `
+      <div class="quote-table-wrap">
+        <table class="qt">
+          <thead><tr>
+            <th>PART #</th><th>BRAND</th><th>TYPE</th>
+            <th>PARTS&nbsp;$</th><th>LABOR&nbsp;HRS</th><th>LABOR&nbsp;$</th><th>LINE TOTAL</th>
+          </tr></thead>
+          <tbody>${rows}</tbody>
+        </table>
+      </div>
+      <div class="quote-summary">
+        <div class="qs-divider-thin"></div>
+        <div class="qs-row"><span class="qs-label">PARTS TOTAL</span><span class="qs-val">${fmt(s.parts_total_usd)}</span></div>
+        <div class="qs-row"><span class="qs-label">LABOR TOTAL</span><span class="qs-val">${fmt(s.labor_total_usd)}</span></div>
+        <div class="qs-divider-double"></div>
+        <div class="qs-row grand">
+          <span class="qs-label">GRAND TOTAL</span>
+          <span class="qs-val">${fmt(s.grand_total_usd)}</span>
+        </div>
+        <div class="qs-divider-thin"></div>
+        <div class="qs-meta">CURRENCY: ${s.currency} &nbsp;·&nbsp; ${items.length} SKU${items.length !== 1 ? 's' : ''} &nbsp;·&nbsp; Generated ${ts()}</div>
+      </div>`;
+  }
+
+  function renderNetworkError(msg, elapsed) {
+    hidePlaceholder();
+    setStatus('error', 'NETWORK ERROR', elapsed + 'ms');
+    document.getElementById('result-count').textContent = 'ERROR';
+    document.getElementById('results-body').innerHTML = stateCard('error', 'NETWORK_ERROR', escHtml(msg));
+  }
+
+  function hidePlaceholder() {
+    const p = document.getElementById('placeholder');
+    if (p) p.style.display = 'none';
+  }
+
+  function stateCard(cls, code, msg) {
+    return `<div class="state-card ${cls}"><div class="sc-code">${escHtml(code)}</div>${escHtml(msg)}</div>`;
+  }
+
+  function toggleRaw(id) { document.getElementById(id).classList.toggle('visible'); }
+</script>
+</body>
+</html>
