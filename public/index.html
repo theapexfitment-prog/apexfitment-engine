@@ -2,484 +2,611 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
   <title>ApexFitment — Deterministic Compatibility Engine</title>
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
-  <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@300;400;500;600;700&display=swap" rel="stylesheet" />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;600;700&display=swap" rel="stylesheet" />
   <style>
+    /* ── Design tokens ───────────────────────────────────────────────────── */
     :root {
-      --bg:          #0a0a0f;
-      --surface:     #0f0f16;
-      --surface-2:   #13131c;
-      --border:      #1e1e2e;
-      --border-lit:  #2a2a40;
-      --accent:      #00d4ff;
-      --accent-dim:  rgba(0, 212, 255, 0.08);
-      --accent-glow: rgba(0, 212, 255, 0.18);
-      --green:       #00ff88;
-      --green-dim:   rgba(0, 255, 136, 0.08);
-      --green-glow:  rgba(0, 255, 136, 0.18);
-      --red:         #ff4466;
-      --amber:       #ffaa00;
-      --muted:       #3a3a52;
-      --text:        #e2e2f0;
-      --text-dim:    #6b6b8a;
-      --text-bright: #ffffff;
-      --radius:      6px;
-      --font:        'JetBrains Mono', 'Courier New', monospace;
+      --bg:           #0a0a0f;
+      --surface:      #0e0e16;
+      --surface-2:    #121220;
+      --border:       #1e1e2e;
+      --border-lit:   #2a2a42;
+      --accent:       #00d4ff;
+      --accent-dim:   rgba(0,212,255,0.06);
+      --accent-glow:  rgba(0,212,255,0.18);
+      --green:        #00ff88;
+      --green-dim:    rgba(0,255,136,0.06);
+      --green-glow:   rgba(0,255,136,0.18);
+      --amber:        #ffb800;
+      --amber-dim:    rgba(255,184,0,0.07);
+      --red:          #ff4444;
+      --red-dim:      rgba(255,68,68,0.07);
+      --text:         #e2e2f0;
+      --text-dim:     #6b6b80;
+      --text-bright:  #ffffff;
+      --mono:         'JetBrains Mono', 'Courier New', monospace;
+      --sans:         'Inter', system-ui, sans-serif;
+      --r-card:       8px;
+      --r-input:      6px;
+      --r-pill:       20px;
     }
 
+    /* ── Reset ───────────────────────────────────────────────────────────── */
     *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
-    html { scroll-behavior: smooth; }
-
+    html { scroll-behavior: smooth; -webkit-text-size-adjust: 100%; }
     body {
       background: var(--bg);
       color: var(--text);
-      font-family: var(--font);
-      font-size: 13px;
+      font-family: var(--sans);
+      font-size: 14px;
       line-height: 1.6;
-      min-height: 100vh;
-      display: flex;
-      flex-direction: column;
+      min-height: 100svh;
+      overflow-x: hidden;
     }
 
+    /* Subtle grid texture */
     body::before {
       content: '';
-      position: fixed; inset: 0; pointer-events: none;
+      position: fixed; inset: 0; pointer-events: none; z-index: 0;
       background-image:
-        linear-gradient(rgba(0,212,255,.015) 1px, transparent 1px),
-        linear-gradient(90deg, rgba(0,212,255,.015) 1px, transparent 1px);
-      background-size: 40px 40px;
-      z-index: 0;
+        linear-gradient(rgba(0,212,255,.013) 1px, transparent 1px),
+        linear-gradient(90deg, rgba(0,212,255,.013) 1px, transparent 1px);
+      background-size: 48px 48px;
     }
 
-    body::after {
-      content: '';
-      position: fixed; inset: 0; pointer-events: none;
-      background: repeating-linear-gradient(0deg, transparent, transparent 3px, rgba(0,0,0,.06) 3px, rgba(0,0,0,.06) 4px);
-      z-index: 0;
-    }
-
-    .container {
-      position: relative; z-index: 1;
-      width: 100%; max-width: 960px;
-      margin: 0 auto; padding: 0 24px;
-      flex: 1; display: flex; flex-direction: column;
-    }
-
-    /* ── Header ─────────────────────────────────────────────────────────── */
-    header {
-      position: relative; z-index: 1; width: 100%;
+    /* ── Header ──────────────────────────────────────────────────────────── */
+    .hdr {
+      position: sticky; top: 0; z-index: 200;
+      height: 56px;
+      background: rgba(10,10,15,0.88);
+      backdrop-filter: blur(14px); -webkit-backdrop-filter: blur(14px);
       border-bottom: 1px solid var(--border);
-      background: linear-gradient(180deg, rgba(0,212,255,.04) 0%, transparent 100%);
+      padding: 0 max(16px, env(safe-area-inset-left));
+      display: flex; align-items: center;
     }
-    .header-inner {
-      max-width: 960px; margin: 0 auto; padding: 20px 24px;
-      display: flex; align-items: center; gap: 16px;
+    .hdr-inner {
+      width: 100%; max-width: 1200px; margin: 0 auto;
+      display: flex; align-items: center; justify-content: space-between; gap: 12px;
     }
-    .logo-mark { display: flex; align-items: center; gap: 12px; }
-    .logo-hex {
-      width: 40px; height: 40px; border: 1.5px solid var(--accent); border-radius: 4px;
-      display: grid; place-items: center; font-size: 18px;
-      background: var(--accent-dim); box-shadow: 0 0 16px var(--accent-glow); flex-shrink: 0;
+    .logo { display: flex; align-items: center; gap: 10px; text-decoration: none; }
+    .logo-icon {
+      width: 30px; height: 30px; border-radius: 5px; flex-shrink: 0;
+      background: var(--accent-dim); border: 1.5px solid var(--accent);
+      display: grid; place-items: center;
+      font-family: var(--mono); font-size: 15px; color: var(--accent);
+      box-shadow: 0 0 14px var(--accent-glow);
     }
-    .logo-text { display: flex; flex-direction: column; }
-    .logo-text .brand {
-      font-size: 15px; font-weight: 700; letter-spacing: .18em;
-      color: var(--accent); text-shadow: 0 0 20px var(--accent-glow); text-transform: uppercase;
+    .logo-copy { display: flex; flex-direction: column; line-height: 1.2; }
+    .logo-name {
+      font-family: var(--mono); font-size: 13px; font-weight: 700;
+      letter-spacing: .18em; text-transform: uppercase;
+      color: var(--accent); text-shadow: 0 0 18px var(--accent-glow);
     }
-    .logo-text .tagline { font-size: 10px; color: var(--text-dim); letter-spacing: .06em; margin-top: 1px; }
-    .header-right { margin-left: auto; display: flex; align-items: center; gap: 20px; }
-    .sys-badge {
-      display: flex; align-items: center; gap: 7px;
-      font-size: 10px; font-weight: 600; letter-spacing: .12em; color: var(--green); text-transform: uppercase;
-      padding: 5px 10px; border: 1px solid rgba(0,255,136,.2); border-radius: 4px; background: rgba(0,255,136,.04);
+    .logo-tag {
+      font-family: var(--sans); font-size: 10px; color: var(--text-dim);
+      letter-spacing: .04em; display: none;
     }
-    .sys-badge .dot {
-      width: 7px; height: 7px; border-radius: 50%; background: var(--green);
-      box-shadow: 0 0 8px var(--green); animation: pulse 2s ease-in-out infinite;
-    }
-    @keyframes pulse {
-      0%, 100% { opacity: 1; box-shadow: 0 0 8px var(--green); }
-      50%       { opacity: .4; box-shadow: none; }
-    }
-    .ver-tag { font-size: 10px; color: var(--muted); letter-spacing: .06em; }
+    @media (min-width: 520px) { .logo-tag { display: block; } }
 
-    /* ── Main layout ────────────────────────────────────────────────────── */
-    .main-grid {
-      display: grid; grid-template-columns: 380px 1fr;
-      gap: 16px; padding: 24px 0 16px; flex: 1; align-items: start;
+    .sys-pill {
+      display: flex; align-items: center; gap: 6px; flex-shrink: 0;
+      background: rgba(0,255,136,.05); border: 1px solid rgba(0,255,136,.2);
+      border-radius: var(--r-pill); padding: 5px 10px;
+      font-family: var(--mono); font-size: 9px; font-weight: 600;
+      letter-spacing: .12em; color: var(--green); text-transform: uppercase;
     }
-    @media (max-width: 760px) { .main-grid { grid-template-columns: 1fr; } }
+    .sys-dot {
+      width: 6px; height: 6px; border-radius: 50%; background: var(--green);
+      box-shadow: 0 0 8px var(--green); flex-shrink: 0;
+      animation: blink 2s ease-in-out infinite;
+    }
+    @keyframes blink {
+      0%,100% { opacity:1; box-shadow: 0 0 8px var(--green); }
+      50%      { opacity:.35; box-shadow: none; }
+    }
+    @media (min-width: 640px) { .hdr { height: 64px; } }
 
-    /* ── Panel ──────────────────────────────────────────────────────────── */
-    .panel { background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius); overflow: hidden; }
-    .panel-header {
+    /* ── Page layout ─────────────────────────────────────────────────────── */
+    .page {
+      position: relative; z-index: 1;
+      max-width: 1200px; margin: 0 auto;
+      padding: 16px max(16px, env(safe-area-inset-left));
+      padding-bottom: calc(72px + env(safe-area-inset-bottom));
+      display: flex; flex-direction: column; gap: 16px;
+    }
+    @media (min-width: 900px) {
+      .page {
+        display: grid;
+        grid-template-columns: 390px 1fr;
+        align-items: start;
+        gap: 20px;
+        padding: 24px 24px 48px;
+      }
+    }
+
+    /* ── Card shell ──────────────────────────────────────────────────────── */
+    .card {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: var(--r-card);
+      overflow: hidden;
+    }
+    .card-hdr {
+      display: flex; align-items: center; gap: 8px;
       padding: 10px 16px; border-bottom: 1px solid var(--border);
-      display: flex; align-items: center; gap: 8px; background: var(--surface-2);
+      background: var(--surface-2);
     }
-    .panel-header .ph-dot { width: 6px; height: 6px; border-radius: 50%; background: var(--accent); box-shadow: 0 0 6px var(--accent); }
-    .panel-header .ph-title { font-size: 10px; font-weight: 600; letter-spacing: .14em; color: var(--accent); text-transform: uppercase; }
-    .panel-header .ph-sub { margin-left: auto; font-size: 10px; color: var(--muted); }
-    .panel-body { padding: 16px; }
+    .card-dot { width: 6px; height: 6px; border-radius: 50%; background: var(--accent); box-shadow: 0 0 6px var(--accent); flex-shrink: 0; }
+    .card-title { font-family: var(--mono); font-size: 10px; font-weight: 600; letter-spacing: .14em; text-transform: uppercase; color: var(--accent); }
+    .card-sub { margin-left: auto; font-family: var(--mono); font-size: 10px; color: var(--text-dim); }
 
-    /* ── Form fields ────────────────────────────────────────────────────── */
-    .form-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+    /* ── Form panel ──────────────────────────────────────────────────────── */
+    .form-card { border-left: 3px solid var(--accent); }
+    .form-body { padding: 16px; }
+
+    .form-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 10px;
+      margin-bottom: 14px;
+    }
     .field { display: flex; flex-direction: column; gap: 5px; }
     .field.full { grid-column: 1 / -1; }
-    .field label { font-size: 10px; font-weight: 500; letter-spacing: .1em; color: var(--text-dim); text-transform: uppercase; }
 
+    .field label {
+      font-family: var(--mono); font-size: 10px; font-weight: 500;
+      letter-spacing: .15em; text-transform: uppercase; color: var(--text-dim);
+    }
     .field input, .field select {
-      background: var(--bg); border: 1px solid var(--border-lit); border-radius: 4px;
-      color: var(--text); font-family: var(--font); font-size: 12px; padding: 8px 10px;
-      outline: none; transition: border-color .15s, box-shadow .15s; width: 100%;
-      appearance: none; -webkit-appearance: none;
+      height: 48px; width: 100%; padding: 0 12px;
+      background: var(--bg); border: 1px solid var(--border-lit);
+      border-radius: var(--r-input); color: var(--text);
+      font-family: var(--mono); font-size: 13px;
+      outline: none; appearance: none; -webkit-appearance: none;
+      transition: border-color .15s, box-shadow .15s;
     }
     .field input:focus, .field select:focus {
-      border-color: var(--accent); box-shadow: 0 0 0 2px rgba(0,212,255,.12);
+      border-color: var(--accent);
+      box-shadow: 0 0 0 3px rgba(0,212,255,.1);
     }
-    .field input::placeholder { color: var(--muted); }
-    .field select option { background: #0f0f16; color: var(--text); }
+    .field input::placeholder { color: var(--text-dim); font-style: italic; }
+    .field select {
+      background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='8' viewBox='0 0 12 8'%3E%3Cpath d='M1 1l5 5 5-5' stroke='%236b6b80' stroke-width='1.5' fill='none' stroke-linecap='round'/%3E%3C/svg%3E");
+      background-repeat: no-repeat;
+      background-position: right 12px center;
+      padding-right: 32px;
+    }
+    .field select option { background: var(--surface); color: var(--text); }
 
-    /* ── Buttons ────────────────────────────────────────────────────────── */
+    /* ── Action buttons ──────────────────────────────────────────────────── */
+    .btn-group { display: flex; flex-direction: column; gap: 8px; }
+
+    .btn {
+      width: 100%; border: none; border-radius: var(--r-input);
+      cursor: pointer; display: flex; align-items: center; justify-content: center; gap: 8px;
+      font-family: var(--mono); font-weight: 700; text-transform: uppercase;
+      letter-spacing: .16em; outline: none;
+      transition: background .15s, box-shadow .15s, opacity .15s, transform .1s;
+      -webkit-tap-highlight-color: transparent; user-select: none;
+    }
+    .btn:active:not(:disabled) { transform: scale(.98); }
+    .btn:disabled { opacity: .4; cursor: not-allowed; }
+
+    /* Button 1 — RUN COMPATIBILITY QUERY */
     .btn-run {
-      width: 100%; margin-top: 10px; padding: 11px;
-      background: transparent; border: 1.5px solid var(--accent); border-radius: 4px;
-      color: var(--accent); font-family: var(--font); font-size: 11px; font-weight: 700;
-      letter-spacing: .18em; text-transform: uppercase; cursor: pointer;
-      transition: background .15s, box-shadow .15s, color .15s;
-      display: flex; align-items: center; justify-content: center; gap: 8px;
+      height: 52px; font-size: 11px;
+      background: transparent; color: var(--accent);
+      border: 1.5px solid var(--accent);
     }
-    .btn-run:hover { background: var(--accent-dim); box-shadow: 0 0 20px var(--accent-glow); color: var(--text-bright); }
-    .btn-run:active { transform: scale(.99); }
-    .btn-run:disabled { border-color: var(--muted); color: var(--muted); cursor: not-allowed; box-shadow: none; background: transparent; }
+    .btn-run:hover:not(:disabled) { background: var(--accent-dim); box-shadow: 0 0 20px var(--accent-glow); }
 
+    /* Button 2 — GENERATE QUOTE */
     .btn-quote {
-      width: 100%; margin-top: 8px; padding: 11px;
-      background: transparent; border: 1.5px solid var(--green); border-radius: 4px;
-      color: var(--green); font-family: var(--font); font-size: 11px; font-weight: 700;
-      letter-spacing: .18em; text-transform: uppercase; cursor: pointer;
-      transition: background .15s, box-shadow .15s, color .15s;
-      display: flex; align-items: center; justify-content: center; gap: 8px;
+      height: 52px; font-size: 11px;
+      background: var(--accent); color: var(--bg);
     }
-    .btn-quote:hover { background: var(--green-dim); box-shadow: 0 0 20px var(--green-glow); color: var(--text-bright); }
-    .btn-quote:active { transform: scale(.99); }
-    .btn-quote:disabled { border-color: var(--muted); color: var(--muted); cursor: not-allowed; box-shadow: none; background: transparent; }
+    .btn-quote:hover:not(:disabled) { background: #1adcff; box-shadow: 0 0 20px var(--accent-glow); }
 
+    /* Button 3 — EXPORT PDF */
     .btn-pdf {
-      width: 100%; margin-top: 8px; padding: 11px;
-      background: transparent; border: 1.5px solid #ffb800; border-radius: 4px;
-      color: #ffb800; font-family: var(--font); font-size: 11px; font-weight: 700;
-      letter-spacing: .18em; text-transform: uppercase; cursor: pointer;
-      transition: background .15s, box-shadow .15s, color .15s;
-      display: flex; align-items: center; justify-content: center; gap: 8px;
+      height: 60px; font-size: 16px;
+      background: var(--amber); color: var(--bg);
     }
-    .btn-pdf:hover { background: rgba(255,184,0,.08); box-shadow: 0 0 20px rgba(255,184,0,.2); color: var(--text-bright); }
-    .btn-pdf:active { transform: scale(.99); }
-    .btn-pdf:disabled { border-color: var(--muted); color: var(--muted); cursor: not-allowed; box-shadow: none; background: transparent; }
+    .btn-pdf:hover:not(:disabled) { background: #ffc31a; box-shadow: 0 0 20px rgba(255,184,0,.28); }
+    .btn-pdf.pulse { animation: pdf-pulse 2.4s ease-in-out infinite; }
+    @keyframes pdf-pulse {
+      0%,100% { box-shadow: 0 0 0 0 rgba(255,184,0,0); }
+      50%      { box-shadow: 0 0 0 7px rgba(255,184,0,.18); }
+    }
+    @media (min-width: 900px) { .btn-pdf { height: 52px; font-size: 13px; } }
 
+    /* Loading spinner */
     .btn-spinner {
-      width: 12px; height: 12px; border: 1.5px solid var(--muted);
-      border-radius: 50%; animation: spin .7s linear infinite; display: none; flex-shrink: 0;
+      width: 14px; height: 14px; border-radius: 50%; flex-shrink: 0;
+      border: 2px solid rgba(255,255,255,.2);
+      border-top-color: currentColor;
+      animation: spin .7s linear infinite;
+      display: none;
     }
-    .btn-run.loading   .btn-spinner { display: block; border-top-color: var(--accent); }
-    .btn-quote.loading .btn-spinner { display: block; border-top-color: var(--green); }
-    .btn-pdf.loading   .btn-spinner { display: block; border-top-color: #ffb800; }
-    .btn-run.loading   .btn-label { display: none; }
-    .btn-quote.loading .btn-label { display: none; }
-    .btn-pdf.loading   .btn-label { display: none; }
+    .btn.loading .btn-spinner { display: block; }
+    .btn.loading .btn-label   { display: none; }
     @keyframes spin { to { transform: rotate(360deg); } }
 
-    /* ── Query preview ───────────────────────────────────────────────────── */
-    .query-preview {
-      margin-top: 12px; background: var(--bg); border: 1px solid var(--border);
-      border-radius: 4px; padding: 10px 12px; font-size: 10px; color: var(--muted);
-      line-height: 1.8; display: none;
+    /* ── Query preview (collapsible) ─────────────────────────────────────── */
+    .qp-wrap { margin-top: 12px; }
+    .qp-wrap details summary {
+      font-family: var(--mono); font-size: 10px; font-weight: 600;
+      letter-spacing: .12em; text-transform: uppercase; color: var(--text-dim);
+      cursor: pointer; user-select: none; list-style: none;
+      display: flex; align-items: center; gap: 6px; padding: 8px 0;
+      -webkit-tap-highlight-color: transparent;
     }
-    .query-preview.visible { display: block; }
-    .query-preview .qp-key { color: var(--text-dim); }
-    .query-preview .qp-val { color: var(--accent); }
+    .qp-wrap details summary::-webkit-details-marker { display: none; }
+    .qp-wrap details summary::before {
+      content: '▶'; font-size: 8px; display: inline-block;
+      transition: transform .15s;
+    }
+    .qp-wrap details[open] summary::before { transform: rotate(90deg); }
+    .query-preview {
+      background: var(--bg); border: 1px solid var(--border);
+      border-radius: var(--r-input); padding: 10px 14px;
+      font-family: var(--mono); font-size: 11px; line-height: 2;
+    }
+    .qp-row { display: grid; grid-template-columns: 10ch 1fr; gap: 8px; }
+    .qp-key { color: var(--text-dim); }
+    .qp-val { color: var(--accent); }
+    .qp-val.any { color: var(--amber); }
 
     /* ── Results panel ───────────────────────────────────────────────────── */
-    .results-panel { display: flex; flex-direction: column; }
-    #results-body { flex: 1; padding: 16px; overflow-y: auto; min-height: 360px; max-height: 620px; }
-
-    .placeholder-state {
-      height: 100%; min-height: 300px; display: flex; flex-direction: column;
-      align-items: center; justify-content: center; gap: 10px; color: var(--muted);
+    .results-card { display: flex; flex-direction: column; }
+    .results-body {
+      padding: 16px; min-height: 240px;
     }
-    .placeholder-state .ph-icon { font-size: 28px; opacity: .4; }
-    .placeholder-state p { font-size: 11px; text-align: center; letter-spacing: .06em; }
-
-    /* ── Status bar ──────────────────────────────────────────────────────── */
-    .status-bar {
-      padding: 8px 16px; border-top: 1px solid var(--border); background: var(--surface-2);
-      display: flex; align-items: center; gap: 10px; font-size: 10px; color: var(--muted);
-    }
-    .sb-status { font-weight: 600; text-transform: uppercase; letter-spacing: .08em; }
-    .sb-status.ok    { color: var(--green); }
-    .sb-status.error { color: var(--red); }
-    .sb-status.empty { color: var(--amber); }
-    .sb-time { margin-left: auto; }
-
-    /* ── Fitment result cards ────────────────────────────────────────────── */
-    .result-entry {
-      border: 1px solid var(--border); border-left: 3px solid var(--accent);
-      border-radius: 4px; padding: 12px 14px; margin-bottom: 10px;
-      background: var(--surface-2); animation: fadeIn .2s ease both;
-    }
-    @keyframes fadeIn { from { opacity: 0; transform: translateY(4px); } to { opacity: 1; transform: translateY(0); } }
-    .re-header { display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 8px; }
-    .re-brand { font-size: 9px; font-weight: 600; letter-spacing: .14em; color: var(--accent); text-transform: uppercase; }
-    .re-type { font-size: 9px; padding: 2px 6px; border: 1px solid var(--border-lit); border-radius: 3px; color: var(--text-dim); text-transform: uppercase; letter-spacing: .08em; }
-    .re-name { font-size: 13px; font-weight: 600; color: var(--text-bright); margin-bottom: 6px; }
-    .re-meta { display: flex; flex-wrap: wrap; gap: 6px; margin-bottom: 8px; }
-    .re-chip { font-size: 9px; padding: 2px 7px; border: 1px solid var(--border); border-radius: 3px; color: var(--text-dim); background: var(--bg); }
-    .re-price { font-size: 18px; font-weight: 700; color: var(--green); letter-spacing: .02em; }
-    .re-price span { font-size: 11px; font-weight: 400; color: var(--text-dim); margin-left: 4px; }
-    .raw-toggle { font-size: 10px; color: var(--text-dim); cursor: pointer; text-decoration: underline; text-underline-offset: 3px; margin-top: 4px; display: inline-block; }
-    .raw-toggle:hover { color: var(--accent); }
-    pre.raw-json {
-      display: none; margin-top: 10px; background: var(--bg); border: 1px solid var(--border);
-      border-radius: 4px; padding: 12px; font-size: 10px; color: var(--text-dim);
-      overflow-x: auto; white-space: pre-wrap; word-break: break-word; line-height: 1.7;
-    }
-    pre.raw-json.visible { display: block; }
-    pre.raw-json .json-key  { color: #7c9cbf; }
-    pre.raw-json .json-str  { color: #a5d6a7; }
-    pre.raw-json .json-num  { color: #ffcc80; }
-    pre.raw-json .json-null { color: #ef9a9a; }
-
-    /* ── Quote table ────────────────────────────────────────────────────── */
-    .quote-table-wrap { overflow-x: auto; margin-bottom: 16px; animation: fadeIn .2s ease both; }
-
-    table.qt {
-      width: 100%; border-collapse: collapse; font-size: 10px;
-    }
-    table.qt thead tr { background: var(--surface-2); border-bottom: 1px solid var(--border); }
-    table.qt thead th {
-      padding: 7px 10px; text-align: left; font-weight: 600; letter-spacing: .1em;
-      color: var(--accent); text-transform: uppercase; white-space: nowrap;
-    }
-    table.qt tbody tr { border-bottom: 1px solid var(--border); transition: background .1s; }
-    table.qt tbody tr:hover { background: var(--surface-2); }
-    table.qt tbody td { padding: 8px 10px; color: var(--text); vertical-align: middle; }
-    table.qt tbody td.num { text-align: right; color: var(--text-dim); font-variant-numeric: tabular-nums; }
-    table.qt tbody td.total { text-align: right; color: var(--green); font-weight: 600; }
-    table.qt .td-brand { font-weight: 600; color: var(--text-bright); }
-    table.qt .td-type {
-      font-size: 9px; padding: 2px 6px; border: 1px solid var(--border-lit);
-      border-radius: 3px; color: var(--text-dim); text-transform: uppercase;
-      letter-spacing: .06em; display: inline-block;
+    @media (min-width: 900px) {
+      .results-body { max-height: 76vh; overflow-y: auto; }
+      .results-body::-webkit-scrollbar { width: 4px; }
+      .results-body::-webkit-scrollbar-track { background: transparent; }
+      .results-body::-webkit-scrollbar-thumb { background: var(--border-lit); border-radius: 2px; }
     }
 
-    /* ── Quote summary block ────────────────────────────────────────────── */
-    .quote-summary {
+    /* Placeholder */
+    .placeholder {
+      min-height: 220px; display: flex; flex-direction: column;
+      align-items: center; justify-content: center; gap: 12px;
+      color: var(--text-dim); text-align: center;
+    }
+    .placeholder svg { opacity: .25; }
+    .placeholder p { font-family: var(--mono); font-size: 11px; letter-spacing: .06em; line-height: 1.9; }
+
+    /* ── Select toggle bar ───────────────────────────────────────────────── */
+    .sel-bar {
+      display: flex; align-items: center; gap: 8px;
+      margin-bottom: 12px; flex-wrap: wrap;
+    }
+    .toggle-sel-btn {
+      font-family: var(--mono); font-size: 9px; font-weight: 600;
+      letter-spacing: .12em; text-transform: uppercase; color: var(--accent);
+      background: transparent; border: 1px solid rgba(0,212,255,.4);
+      border-radius: var(--r-pill); padding: 6px 14px; cursor: pointer;
+      transition: background .15s; -webkit-tap-highlight-color: transparent;
+    }
+    .toggle-sel-btn:hover { background: var(--accent-dim); }
+    .sel-count-text {
+      margin-left: auto; font-family: var(--mono); font-size: 10px; color: var(--text-dim);
+    }
+    .sel-count-text .sp { color: var(--green); font-weight: 600; }
+
+    /* ── Part card (compatibility / selection) ───────────────────────────── */
+    .part-card {
+      display: block;
+      background: var(--surface-2); border: 1.5px solid var(--border);
+      border-radius: var(--r-card); padding: 14px 14px 12px;
+      margin-bottom: 10px; cursor: pointer;
+      transition: border-color .15s, background .15s;
+      user-select: none; animation: up .18s ease both;
+      -webkit-tap-highlight-color: transparent;
+    }
+    .part-card:has(input:checked) { border-color: var(--accent); background: rgba(0,212,255,.04); }
+
+    .pc-head {
+      display: flex; align-items: flex-start; justify-content: space-between; gap: 10px;
+      margin-bottom: 8px;
+    }
+    .pc-pills { display: flex; gap: 6px; flex-wrap: wrap; align-items: center; }
+    .pill-brand {
+      font-family: var(--mono); font-size: 9px; font-weight: 600;
+      letter-spacing: .12em; text-transform: uppercase; color: var(--accent);
+      background: var(--accent-dim); border: 1px solid rgba(0,212,255,.2);
+      border-radius: var(--r-pill); padding: 3px 9px;
+    }
+    .pill-type {
+      font-family: var(--mono); font-size: 9px; text-transform: uppercase;
+      letter-spacing: .08em; color: var(--text-dim);
+      border: 1px solid var(--border-lit); border-radius: 4px; padding: 3px 8px;
+    }
+    .pc-chk {
+      width: 24px; height: 24px; min-width: 24px; flex-shrink: 0;
+      accent-color: var(--accent); cursor: pointer; margin-top: 1px;
+    }
+    .pc-pn {
+      font-family: var(--mono); font-size: 13px; font-weight: 600;
+      color: var(--text-bright); margin-bottom: 2px;
+    }
+    .pc-ln { font-family: var(--sans); font-size: 12px; color: var(--text-dim); margin-bottom: 5px; }
+    .pc-fit { font-family: var(--mono); font-size: 10px; color: var(--text-dim); margin-bottom: 10px; }
+    .pc-hr { border: none; border-top: 1px solid var(--border); margin: 0 0 10px; }
+    .pc-price-row { display: flex; align-items: center; justify-content: space-between; }
+    .pc-price-lbl { font-family: var(--mono); font-size: 10px; text-transform: uppercase; letter-spacing: .1em; color: var(--text-dim); }
+    .pc-price-val { font-family: var(--mono); font-size: 18px; font-weight: 700; color: var(--green); }
+
+    /* ── Quote line-item cards ───────────────────────────────────────────── */
+    .qi-card {
       background: var(--surface-2); border: 1px solid var(--border);
-      border-top: 3px solid var(--green); border-radius: 4px;
-      padding: 16px 20px; animation: fadeIn .25s ease both;
+      border-radius: var(--r-card); padding: 14px;
+      margin-bottom: 10px; animation: up .18s ease both;
+    }
+    .qi-top {
+      display: flex; align-items: flex-start; justify-content: space-between; gap: 10px;
+      margin-bottom: 8px;
+    }
+    .qi-pn { font-family: var(--mono); font-size: 12px; font-weight: 600; color: var(--text-bright); }
+    .qi-brand { font-family: var(--sans); font-size: 11px; color: var(--text-dim); margin-top: 2px; }
+    .qi-hr { border: none; border-top: 1px solid var(--border); margin: 10px 0; }
+    .qi-grid {
+      display: grid; grid-template-columns: 1fr 1fr 1fr;
+      gap: 8px; margin-bottom: 10px;
+    }
+    .qi-cell { display: flex; flex-direction: column; gap: 2px; }
+    .qi-cell-lbl { font-family: var(--mono); font-size: 9px; text-transform: uppercase; letter-spacing: .1em; color: var(--text-dim); }
+    .qi-cell-val { font-family: var(--mono); font-size: 13px; font-weight: 600; color: var(--accent); }
+    .qi-total { display: flex; align-items: center; justify-content: space-between; }
+    .qi-total-lbl { font-family: var(--mono); font-size: 10px; text-transform: uppercase; letter-spacing: .1em; color: var(--text-dim); }
+    .qi-total-val { font-family: var(--mono); font-size: 16px; font-weight: 700; color: var(--green); }
+
+    /* ── Quote summary block ─────────────────────────────────────────────── */
+    .q-summary {
+      background: var(--surface-2); border: 1px solid var(--border);
+      border-top: 3px solid var(--green);
+      border-radius: var(--r-card); padding: 20px;
+      animation: up .22s ease both;
     }
     .qs-row {
       display: flex; justify-content: space-between; align-items: baseline;
-      font-size: 11px; color: var(--text-dim); padding: 4px 0;
-      font-variant-numeric: tabular-nums;
+      font-family: var(--mono); font-size: 12px; color: var(--text-dim);
+      padding: 5px 0; font-variant-numeric: tabular-nums;
     }
-    .qs-divider-thin   { border-top: 1px solid var(--border);  margin: 6px 0; }
-    .qs-divider-double { border-top: 3px double var(--border-lit); margin: 8px 0; }
-    .qs-row.grand .qs-label { color: var(--text-bright); font-weight: 700; font-size: 13px; letter-spacing: .08em; text-transform: uppercase; }
-    .qs-row.grand .qs-val   { color: var(--green); font-weight: 700; font-size: 1.4rem; letter-spacing: .02em; text-shadow: 0 0 16px var(--green-glow); }
-    .qs-meta { font-size: 9px; color: var(--muted); margin-top: 10px; text-align: right; letter-spacing: .06em; }
+    .qs-divider-thin   { border: none; border-top: 1px solid var(--border); margin: 8px 0; }
+    .qs-divider-double { border: none; border-top: 3px double var(--green); margin: 12px 0; }
+    .qs-row.grand .qs-label {
+      font-weight: 700; font-size: 14px; letter-spacing: .1em;
+      text-transform: uppercase; color: var(--text-bright);
+    }
+    .qs-row.grand .qs-val {
+      font-weight: 700; font-size: 2rem; color: var(--green);
+      text-shadow: 0 0 22px var(--green-glow);
+    }
+    .qs-meta {
+      font-family: var(--mono); font-size: 9px; color: var(--text-dim);
+      margin-top: 12px; text-align: right; letter-spacing: .06em;
+    }
 
-    /* ── Selectable part cards ──────────────────────────────────────────────── */
-    .select-toggle-bar {
-      display: flex; align-items: center; justify-content: space-between;
-      padding: 0 0 10px; margin-bottom: 2px;
+    /* ── Status bar (inline, bottom of results card) ─────────────────────── */
+    .status-bar {
+      padding: 10px 16px; border-top: 1px solid var(--border);
+      background: var(--surface-2);
+      display: flex; align-items: center; gap: 8px;
     }
-    .toggle-sel-btn {
-      font-family: var(--font); font-size: 9px; font-weight: 600; letter-spacing: .12em;
-      color: var(--text-dim); background: transparent; border: 1px solid var(--border-lit);
-      border-radius: 3px; padding: 4px 10px; cursor: pointer; text-transform: uppercase;
-      transition: color .15s, border-color .15s;
+    .sb-status {
+      font-family: var(--mono); font-size: 11px; font-weight: 600;
+      letter-spacing: .08em; text-transform: uppercase; flex: 1;
+      display: flex; align-items: center; gap: 8px;
     }
-    .toggle-sel-btn:hover { color: var(--accent); border-color: var(--accent); }
-    .sel-counter { font-size: 10px; color: var(--text-dim); letter-spacing: .04em; }
-    .sel-counter .sel-price { color: var(--green); font-weight: 600; }
+    .sb-status::before {
+      content: ''; display: inline-block; flex-shrink: 0;
+      width: 7px; height: 7px; border-radius: 50%; background: var(--text-dim);
+    }
+    .sb-status.ok::before    { background: var(--green); box-shadow: 0 0 7px var(--green); }
+    .sb-status.error::before { background: var(--red);   box-shadow: 0 0 7px var(--red); }
+    .sb-status.empty::before { background: var(--amber); }
+    .sb-status.ok    { color: var(--green); }
+    .sb-status.error { color: var(--red); }
+    .sb-status.empty { color: var(--amber); }
+    #sb-detail { font-family: var(--mono); font-size: 11px; color: var(--text-dim); flex: 1; }
+    #sb-time   { font-family: var(--mono); font-size: 10px; color: var(--text-dim); opacity: .6; margin-left: auto; white-space: nowrap; }
 
-    .part-card {
-      display: flex; align-items: center; gap: 12px;
-      border: 1px solid var(--border); border-radius: 4px; padding: 10px 12px;
-      margin-bottom: 8px; background: var(--surface-2);
-      cursor: pointer; transition: border-color .15s, background .15s;
-      user-select: none; animation: fadeIn .18s ease both;
+    /* ── State cards (error / empty / warning) ───────────────────────────── */
+    .state-card {
+      padding: 16px; border-radius: var(--r-card);
+      font-family: var(--mono); font-size: 11px; line-height: 1.9;
     }
-    .part-card:has(input:checked) { border-color: var(--accent); background: var(--accent-dim); }
-    .part-card input[type=checkbox] {
-      width: 15px; height: 15px; flex-shrink: 0;
-      accent-color: var(--accent); cursor: pointer;
+    .state-card.error { border: 1px solid rgba(255,68,68,.3);  background: var(--red-dim);   color: var(--red);   }
+    .state-card.empty { border: 1px solid rgba(255,184,0,.25); background: var(--amber-dim); color: var(--amber); }
+    .sc-code { font-size: 10px; font-weight: 700; letter-spacing: .1em; text-transform: uppercase; margin-bottom: 4px; }
+
+    /* ── Sticky selection counter (mobile) ───────────────────────────────── */
+    .sticky-sel {
+      position: fixed; bottom: 0; left: 0; right: 0; z-index: 150;
+      height: 52px;
+      padding: 0 20px;
+      padding-bottom: env(safe-area-inset-bottom);
+      background: var(--surface);
+      border-top: 1.5px solid var(--accent);
+      display: none; align-items: center; justify-content: center;
+      font-family: var(--mono); font-size: 12px; font-weight: 600;
+      color: var(--text-dim); gap: 6px;
     }
-    .part-card-body { flex: 1; min-width: 0; }
-    .pc-header { display: flex; align-items: center; gap: 8px; margin-bottom: 3px; }
-    .pc-name { font-size: 11px; font-weight: 600; color: var(--text-bright); margin-bottom: 2px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-    .pc-meta { font-size: 9px; color: var(--text-dim); }
-    .pc-price { font-size: 13px; font-weight: 700; color: var(--green); flex-shrink: 0; letter-spacing: .01em; }
+    .sticky-sel.show { display: flex; }
+    .sticky-sel .sp { color: var(--green); font-weight: 700; }
+    @media (min-width: 900px) { .sticky-sel { display: none !important; } }
 
-    /* ── State cards ────────────────────────────────────────────────────── */
-    .state-card { padding: 16px; border-radius: 4px; font-size: 11px; line-height: 1.7; }
-    .state-card.error { border: 1px solid rgba(255,68,102,.3); background: rgba(255,68,102,.05); color: var(--red); }
-    .state-card.empty { border: 1px solid rgba(255,170,0,.2); background: rgba(255,170,0,.04); color: var(--amber); }
-    .state-card .sc-code { font-size: 10px; font-weight: 700; letter-spacing: .1em; margin-bottom: 4px; }
-
-    /* ── Footer ─────────────────────────────────────────────────────────── */
+    /* ── Footer ──────────────────────────────────────────────────────────── */
     footer {
-      position: relative; z-index: 1; border-top: 1px solid var(--border);
-      padding: 12px 24px; text-align: center; font-size: 10px; color: var(--muted); letter-spacing: .08em;
+      position: relative; z-index: 1;
+      border-top: 1px solid var(--border);
+      padding: 24px max(16px, env(safe-area-inset-left)) 32px;
+      text-align: center;
+      font-family: var(--mono); font-size: 11px; color: var(--text-dim); letter-spacing: .06em;
     }
-    footer span { color: var(--text-dim); }
+
+    /* ── Animation ───────────────────────────────────────────────────────── */
+    @keyframes up {
+      from { opacity: 0; transform: translateY(6px); }
+      to   { opacity: 1; transform: translateY(0); }
+    }
   </style>
 </head>
 <body>
 
-  <header>
-    <div class="header-inner">
-      <div class="logo-mark">
-        <div class="logo-hex">⬡</div>
-        <div class="logo-text">
-          <span class="brand">ApexFitment</span>
-          <span class="tagline">Deterministic Compatibility. Zero Guesswork.</span>
+  <!-- ── Header ──────────────────────────────────────────────────────────── -->
+  <header class="hdr">
+    <div class="hdr-inner">
+      <a class="logo" href="/">
+        <div class="logo-icon">⬡</div>
+        <div class="logo-copy">
+          <span class="logo-name">ApexFitment</span>
+          <span class="logo-tag">Deterministic Compatibility · Zero Guesswork</span>
         </div>
-      </div>
-      <div class="header-right">
-        <span class="ver-tag">ENGINE v1.0</span>
-        <div class="sys-badge"><div class="dot"></div>SYSTEM ONLINE</div>
-      </div>
+      </a>
+      <div class="sys-pill"><div class="sys-dot"></div>SYSTEM ONLINE</div>
     </div>
   </header>
 
-  <div class="container">
-    <div class="main-grid">
+  <!-- ── Page ────────────────────────────────────────────────────────────── -->
+  <main class="page">
 
-      <!-- ── Left: Query builder ── -->
-      <div class="panel">
-        <div class="panel-header">
-          <div class="ph-dot"></div>
-          <span class="ph-title">Build Configuration</span>
-          <span class="ph-sub">/webhook/sms · /quote</span>
-        </div>
-        <div class="panel-body">
-          <div class="form-grid">
+    <!-- ── Left: Form ──────────────────────────────────────────────────── -->
+    <section class="card form-card">
+      <div class="card-hdr">
+        <div class="card-dot"></div>
+        <span class="card-title">Build Configuration</span>
+        <span class="card-sub">/webhook · /quote</span>
+      </div>
+      <div class="form-body">
 
-            <div class="field">
-              <label for="f-year">Year</label>
-              <input id="f-year" type="text" placeholder="e.g. 2018" value="2018" />
-            </div>
-            <div class="field">
-              <label for="f-make">Make</label>
-              <input id="f-make" type="text" placeholder="e.g. Ford" value="Ford" />
-            </div>
-            <div class="field full">
-              <label for="f-model">Model</label>
-              <input id="f-model" type="text" placeholder="e.g. Mustang GT" value="Mustang GT" />
-            </div>
-            <div class="field full">
-              <label for="f-submodel">Submodel / Payload Class <span style="color:var(--muted);font-weight:400">(optional)</span></label>
-              <input id="f-submodel" type="text" placeholder="e.g. 1500HD, SRT Hellcat (optional)" value="" />
-            </div>
-            <div class="field">
-              <label for="f-cab">Cab Type</label>
-              <input id="f-cab" type="text" placeholder="e.g. Crew Cab" value="" />
-            </div>
-            <div class="field">
-              <label for="f-bed">Bed Length</label>
-              <input id="f-bed" type="text" placeholder="e.g. Standard Bed" value="" />
-            </div>
-            <div class="field full">
-              <label for="f-engine">Engine Displacement</label>
-              <input id="f-engine" type="text" placeholder="e.g. 5.0L" value="5.0L" />
-            </div>
-            <div class="field full">
-              <label for="f-type">Product Type Filter</label>
-              <select id="f-type">
-                <option value="">All Types</option>
-                <option value="Cat-Back">Cat-Back</option>
-                <option value="Long Tube Headers">Long Tube Headers</option>
-                <option value="Supercharger Kit">Supercharger Kit</option>
-                <option value="Cold Air Intake">Cold Air Intake</option>
-                <option value="Camshaft Kit">Camshaft Kit</option>
-                <option value="Transmission">Transmission</option>
-              </select>
-            </div>
-
+        <div class="form-grid">
+          <!-- Row 1: Year + Make -->
+          <div class="field">
+            <label for="f-year">Year</label>
+            <input id="f-year" type="text" inputmode="numeric" placeholder="2019" value="2019" />
+          </div>
+          <div class="field">
+            <label for="f-make">Make</label>
+            <input id="f-make" type="text" placeholder="Dodge" value="Dodge" />
           </div>
 
-          <button class="btn-run" id="btn-run" onclick="runCompatibility()">
-            <div class="btn-spinner"></div>
-            <span class="btn-label">&#x25B6; RUN COMPATIBILITY QUERY</span>
-          </button>
+          <!-- Row 2: Model -->
+          <div class="field full">
+            <label for="f-model">Model</label>
+            <input id="f-model" type="text" placeholder="Challenger" value="Challenger" />
+          </div>
 
-          <button class="btn-quote" id="btn-quote" onclick="runQuote()">
-            <div class="btn-spinner"></div>
-            <span class="btn-label">&#x26A1; GENERATE QUOTE</span>
-          </button>
+          <!-- Row 3: Submodel -->
+          <div class="field full">
+            <label for="f-submodel">Submodel / Payload &nbsp;<span style="font-weight:400;color:var(--text-dim)">(opt)</span></label>
+            <input id="f-submodel" type="text" placeholder="e.g. SRT Hellcat, 1500HD" value="SRT Hellcat" />
+          </div>
 
-          <button class="btn-pdf" id="btn-pdf" onclick="exportPdf()">
-            <div class="btn-spinner"></div>
-            <span class="btn-label">&#x2193; EXPORT PDF</span>
-          </button>
+          <!-- Row 4: Cab + Bed -->
+          <div class="field">
+            <label for="f-cab">Cab Type</label>
+            <input id="f-cab" type="text" placeholder="optional" value="" />
+          </div>
+          <div class="field">
+            <label for="f-bed">Bed Length</label>
+            <input id="f-bed" type="text" placeholder="optional" value="" />
+          </div>
 
-          <div class="query-preview" id="query-preview"></div>
-        </div>
-      </div>
+          <!-- Row 5: Engine -->
+          <div class="field full">
+            <label for="f-engine">Engine Displacement</label>
+            <input id="f-engine" type="text" placeholder="e.g. 6.2L" value="6.2L" />
+          </div>
 
-      <!-- ── Right: Results ── -->
-      <div class="panel results-panel">
-        <div class="panel-header">
-          <div class="ph-dot"></div>
-          <span class="ph-title">Results</span>
-          <span class="ph-sub" id="result-count">—</span>
-        </div>
-        <div id="results-body">
-          <div class="placeholder-state" id="placeholder">
-            <div class="ph-icon">⬡</div>
-            <p>Awaiting query execution.<br/>Configure build parameters and run the engine.</p>
+          <!-- Row 6: Product type -->
+          <div class="field full">
+            <label for="f-type">Product Type Filter</label>
+            <select id="f-type">
+              <option value="">All Types</option>
+              <option value="Cat-Back">Cat-Back</option>
+              <option value="Long Tube Headers">Long Tube Headers</option>
+              <option value="Supercharger Kit">Supercharger Kit</option>
+              <option value="Cold Air Intake">Cold Air Intake</option>
+              <option value="Camshaft Kit">Camshaft Kit</option>
+              <option value="Transmission">Transmission</option>
+            </select>
           </div>
         </div>
-        <div class="status-bar">
-          <span class="sb-status" id="sb-status">IDLE</span>
-          <span id="sb-detail">—</span>
-          <span class="sb-time sb-time" id="sb-time">—</span>
+
+        <!-- ── Buttons ── -->
+        <div class="btn-group">
+          <button class="btn btn-run" id="btn-run" onclick="runCompatibility()">
+            <div class="btn-spinner"></div>
+            <span class="btn-label">▶ Run Compatibility Query</span>
+          </button>
+          <button class="btn btn-quote" id="btn-quote" onclick="runQuote()">
+            <div class="btn-spinner"></div>
+            <span class="btn-label">⚡ Generate Quote</span>
+          </button>
+          <button class="btn btn-pdf" id="btn-pdf" onclick="exportPdf()">
+            <div class="btn-spinner"></div>
+            <span class="btn-label">↓ Export PDF</span>
+          </button>
+        </div>
+
+        <!-- ── Query preview (collapsible) ── -->
+        <div class="qp-wrap">
+          <details id="qp-details">
+            <summary>View Query Params</summary>
+            <div class="query-preview" id="query-preview"></div>
+          </details>
+        </div>
+
+      </div>
+    </section>
+
+    <!-- ── Right: Results ──────────────────────────────────────────────── -->
+    <section class="card results-card">
+      <div class="card-hdr">
+        <div class="card-dot"></div>
+        <span class="card-title">Results</span>
+        <span class="card-sub" id="result-count">—</span>
+      </div>
+      <div class="results-body" id="results-body">
+        <div class="placeholder" id="placeholder">
+          <svg width="40" height="40" viewBox="0 0 40 40" fill="none">
+            <polygon points="20,4 36,13 36,27 20,36 4,27 4,13" stroke="#00d4ff" stroke-width="1.5" fill="none"/>
+          </svg>
+          <p>Awaiting query execution.<br/>Configure build params<br/>and run the engine.</p>
         </div>
       </div>
+      <div class="status-bar">
+        <span class="sb-status" id="sb-status">IDLE</span>
+        <span id="sb-detail">—</span>
+        <span id="sb-time">—</span>
+      </div>
+    </section>
 
-    </div>
+  </main>
+
+  <!-- ── Sticky counter (mobile only) ────────────────────────────────────── -->
+  <div class="sticky-sel" id="sticky-sel">
+    <span id="sticky-sel-text">0 of 0 selected · <span class="sp">$0.00</span> est.</span>
   </div>
 
   <footer>
-    <span>ApexFitment Engine v1.0</span> &nbsp;·&nbsp; B2B Infrastructure &nbsp;·&nbsp; Texas
+    ApexFitment Engine v1.0 &nbsp;·&nbsp; B2B Infrastructure &nbsp;·&nbsp; Texas
   </footer>
 
 <script>
+  /* ── Utilities ──────────────────────────────────────────────────────────── */
   function ts() { return new Date().toLocaleTimeString('en-US', { hour12: false }); }
 
-  function fmt(n) { return '$' + Number(n).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 }); }
-
-  function setStatus(cls, label, detail) {
-    const el = document.getElementById('sb-status');
-    el.className = 'sb-status ' + cls;
-    el.textContent = label;
-    document.getElementById('sb-detail').textContent = detail;
-    document.getElementById('sb-time').textContent = ts();
-  }
-
-  function syntaxHighlight(json) {
-    return json
-      .replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;')
-      .replace(/("(\\u[a-zA-Z0-9]{4}|\\[^u]|[^\\"])*"(\s*:)?|\b(true|false|null)\b|-?\d+(?:\.\d*)?(?:[eE][+\-]?\d+)?)/g, (m) => {
-        let cls = 'json-num';
-        if (/^"/.test(m)) cls = /:$/.test(m) ? 'json-key' : 'json-str';
-        else if (/null/.test(m)) cls = 'json-null';
-        return `<span class="${cls}">${m}</span>`;
-      });
+  function fmt(n) {
+    return '$' + Number(n).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
   }
 
   function escHtml(s) {
@@ -487,6 +614,30 @@
     return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
   }
 
+  /* ── Status bar ─────────────────────────────────────────────────────────── */
+  function setStatus(cls, label, detail) {
+    const el = document.getElementById('sb-status');
+    el.className = 'sb-status ' + (cls || '');
+    el.textContent = label;
+    document.getElementById('sb-detail').textContent = detail || '';
+    document.getElementById('sb-time').textContent = ts();
+  }
+
+  /* ── Loading ────────────────────────────────────────────────────────────── */
+  function setLoading(btnId, on) {
+    const btn = document.getElementById(btnId);
+    if (!btn) return;
+    btn.disabled = on;
+    if (on) btn.classList.add('loading'); else btn.classList.remove('loading');
+  }
+
+  function setAllLoading(on) {
+    setLoading('btn-run', on);
+    setLoading('btn-quote', on);
+    setLoading('btn-pdf', on);
+  }
+
+  /* ── Payload collection ─────────────────────────────────────────────────── */
   function collectPayload() {
     const year    = document.getElementById('f-year').value.trim();
     const make    = document.getElementById('f-make').value.trim();
@@ -512,37 +663,68 @@
       product_type_filter: type || null,
     };
 
-    // Update preview
+    // Update query preview
     const qp = document.getElementById('query-preview');
-    qp.classList.add('visible');
-    qp.innerHTML = Object.entries({
-      year, make, model,
-      submodel_payload_chassis: submodel || '(any)',
-      cab_type: cab || '(any)', bed_length: bed || '(any)',
-      engine_displacement: engine || '(any)',
-      product_type_filter: type || '(all)',
-    }).map(([k, v]) =>
-      `<span class="qp-key">${k.padEnd(24)}</span><span class="qp-val">${v}</span>`
-    ).join('<br/>');
+    const pairs = [
+      ['year',                     year     || null],
+      ['make',                     make     || null],
+      ['model',                    model    || null],
+      ['submodel_payload_chassis', submodel || null],
+      ['cab_type',                 cab      || null],
+      ['bed_length',               bed      || null],
+      ['engine_displacement',      engine   || null],
+      ['product_type_filter',      type     || null],
+    ];
+    qp.innerHTML = pairs.map(([k, v]) =>
+      `<div class="qp-row"><span class="qp-key">${k}</span><span class="qp-val${v === null ? ' any' : ''}">${v === null ? '(any)' : escHtml(String(v))}</span></div>`
+    ).join('');
 
     return payload;
   }
 
-  function setLoading(btnId, on) {
-    const btn = document.getElementById(btnId);
-    btn.disabled = on;
-    if (on) btn.classList.add('loading'); else btn.classList.remove('loading');
+  /* ── Selection helpers ──────────────────────────────────────────────────── */
+  function updateSelectionCounter() {
+    const checks = document.querySelectorAll('.part-chk');
+    if (!checks.length) {
+      document.getElementById('sticky-sel').classList.remove('show');
+      return;
+    }
+    let selected = 0, price = 0;
+    const total = checks.length;
+    checks.forEach(c => { if (c.checked) { selected++; price += parseFloat(c.dataset.price) || 0; } });
+
+    // Inline counter (inside results body)
+    const inline = document.getElementById('sel-counter');
+    if (inline) inline.innerHTML =
+      `${selected} of ${total} &nbsp;·&nbsp; <span class="sp">${fmt(price)}</span>`;
+
+    // Sticky bar (mobile)
+    const sticky = document.getElementById('sticky-sel');
+    sticky.classList.add('show');
+    document.getElementById('sticky-sel-text').innerHTML =
+      `${selected} of ${total} selected &nbsp;·&nbsp; <span class="sp">${fmt(price)}</span> est.`;
+
+    // Toggle button label
+    const btn = document.querySelector('.toggle-sel-btn');
+    if (btn) btn.textContent = selected === total ? 'DESELECT ALL' : 'SELECT ALL';
   }
 
-  function setAllLoading(on) {
-    setLoading('btn-run',   on);
-    setLoading('btn-quote', on);
-    setLoading('btn-pdf',   on);
+  function toggleSelectAll() {
+    const checks = document.querySelectorAll('.part-chk');
+    const allChecked = Array.from(checks).every(c => c.checked);
+    checks.forEach(c => { c.checked = !allChecked; });
+    updateSelectionCounter();
   }
 
-  // ── Compatibility query ──────────────────────────────────────────────────
+  function getSelectedParts() {
+    return Array.from(document.querySelectorAll('.part-chk:checked')).map(c => c.dataset.part);
+  }
+
+  /* ── Compatibility query ────────────────────────────────────────────────── */
   async function runCompatibility() {
     setAllLoading(true);
+    document.getElementById('sticky-sel').classList.remove('show');
+    document.getElementById('btn-pdf').classList.remove('pulse');
     const payload = collectPayload();
     setStatus('', 'QUERYING', 'Fitment matrix lookup…');
     const t0 = performance.now();
@@ -556,7 +738,7 @@
     setAllLoading(false);
   }
 
-  // ── Quote ────────────────────────────────────────────────────────────────
+  /* ── Quote ──────────────────────────────────────────────────────────────── */
   async function runQuote() {
     const checksExist   = document.querySelectorAll('.part-chk').length > 0;
     const selectedParts = getSelectedParts();
@@ -582,7 +764,7 @@
     setAllLoading(false);
   }
 
-  // ── Export PDF ───────────────────────────────────────────────────────────
+  /* ── Export PDF ─────────────────────────────────────────────────────────── */
   async function exportPdf() {
     const checksExist   = document.querySelectorAll('.part-chk').length > 0;
     const selectedParts = getSelectedParts();
@@ -594,6 +776,7 @@
       return;
     }
     setAllLoading(true);
+    document.getElementById('btn-pdf').classList.remove('pulse');
     const payload = collectPayload();
     if (selectedParts.length > 0) payload.selected_part_numbers = selectedParts;
     setStatus('', 'GENERATING PDF', 'Building quote document…');
@@ -604,10 +787,10 @@
         const data = await res.json().catch(() => ({}));
         renderNetworkError((data.error || data.status || `HTTP ${res.status}`), (performance.now() - t0).toFixed(0));
       } else {
-        const blob = await res.blob();
-        const url  = URL.createObjectURL(blob);
-        const a    = document.createElement('a');
-        const cd   = res.headers.get('Content-Disposition') || '';
+        const blob  = await res.blob();
+        const url   = URL.createObjectURL(blob);
+        const a     = document.createElement('a');
+        const cd    = res.headers.get('Content-Disposition') || '';
         const match = cd.match(/filename="([^"]+)"/);
         a.download = match ? match[1] : 'ApexFitment-Quote.pdf';
         a.href = url;
@@ -623,35 +806,11 @@
     setAllLoading(false);
   }
 
-  // ── Selection helpers ────────────────────────────────────────────────────
-  function updateSelectionCounter() {
-    const checks = document.querySelectorAll('.part-chk');
-    if (!checks.length) return;
-    let selected = 0, price = 0;
-    checks.forEach(c => { if (c.checked) { selected++; price += parseFloat(c.dataset.price) || 0; } });
-    const total = checks.length;
-    const counter = document.getElementById('sel-counter');
-    if (counter) counter.innerHTML =
-      `${selected} of ${total} parts selected &nbsp;·&nbsp; <span class="sel-price">${fmt(price)}</span> parts est.`;
-    const btn = document.querySelector('.toggle-sel-btn');
-    if (btn) btn.textContent = selected === total ? 'DESELECT ALL' : 'SELECT ALL';
-  }
-
-  function toggleSelectAll() {
-    const checks = document.querySelectorAll('.part-chk');
-    const allChecked = Array.from(checks).every(c => c.checked);
-    checks.forEach(c => { c.checked = !allChecked; });
-    updateSelectionCounter();
-  }
-
-  function getSelectedParts() {
-    return Array.from(document.querySelectorAll('.part-chk:checked')).map(c => c.dataset.part);
-  }
-
-  // ── Renderers ────────────────────────────────────────────────────────────
+  /* ── Render: compatibility → selectable part cards ──────────────────────── */
   function renderCompatibility(status, data, elapsed) {
     const body = document.getElementById('results-body');
     hidePlaceholder();
+    document.getElementById('sticky-sel').classList.remove('show');
 
     if (status >= 500) {
       setStatus('error', 'ENGINE ERROR', `${data.error} · ${elapsed}ms`);
@@ -670,39 +829,42 @@
     }
 
     const results = data.results || [];
-    setStatus('ok', 'MATCH FOUND', `${results.length} record${results.length !== 1 ? 's' : ''} · ${elapsed}ms — select parts then click GENERATE QUOTE`);
+    setStatus('ok', 'MATCH FOUND', `${results.length} record${results.length !== 1 ? 's' : ''} · ${elapsed}ms`);
     document.getElementById('result-count').textContent = `${results.length} match${results.length !== 1 ? 'es' : ''}`;
+    document.getElementById('btn-pdf').classList.add('pulse');
 
     const cards = results.map((r, i) => `
-      <label class="part-card" for="chk-${i}">
-        <input type="checkbox" id="chk-${i}" class="part-chk"
-               data-part="${escHtml(r.part_number)}" data-price="${r.base_price_usd}"
-               checked onchange="updateSelectionCounter()">
-        <div class="part-card-body">
-          <div class="pc-header">
-            <span class="re-brand">${escHtml(r.brand)}</span>
-            <span class="re-type">${escHtml(r.product_type)}</span>
+      <label class="part-card">
+        <div class="pc-head">
+          <div class="pc-pills">
+            <span class="pill-brand">${escHtml(r.brand)}</span>
+            <span class="pill-type">${escHtml(r.product_type)}</span>
           </div>
-          <div class="pc-name">${escHtml(r.part_number)}${r.line_name ? ' — ' + escHtml(r.line_name) : ''}</div>
-          <div class="pc-meta">
-            ${r.fit_year} ${escHtml(r.fit_make)} ${escHtml(r.fit_model)}
-            ${r.fit_engine_displacement ? ' · ' + escHtml(r.fit_engine_displacement) : ''}
-            ${r.fit_payload_chassis ? ' · ' + escHtml(r.fit_payload_chassis) : ''}
-          </div>
+          <input type="checkbox" id="chk-${i}" class="part-chk pc-chk"
+                 data-part="${escHtml(r.part_number)}" data-price="${r.base_price_usd}"
+                 checked onchange="updateSelectionCounter()">
         </div>
-        <div class="pc-price">${fmt(r.base_price_usd)}</div>
+        <div class="pc-pn">${escHtml(r.part_number)}</div>
+        ${r.line_name ? `<div class="pc-ln">${escHtml(r.brand)} · ${escHtml(r.line_name)}</div>` : ''}
+        <div class="pc-fit">${r.fit_year} ${escHtml(r.fit_make)} ${escHtml(r.fit_model)}${r.fit_payload_chassis ? ' · ' + escHtml(r.fit_payload_chassis) : ''}${r.fit_engine_displacement ? ' · ' + escHtml(r.fit_engine_displacement) : ''}</div>
+        <hr class="pc-hr">
+        <div class="pc-price-row">
+          <span class="pc-price-lbl">Base Price</span>
+          <span class="pc-price-val">${fmt(r.base_price_usd)}</span>
+        </div>
       </label>`).join('');
 
     body.innerHTML = `
-      <div class="select-toggle-bar">
+      <div class="sel-bar">
         <button class="toggle-sel-btn" onclick="toggleSelectAll()">DESELECT ALL</button>
-        <span class="sel-counter" id="sel-counter"></span>
+        <span class="sel-count-text" id="sel-counter"></span>
       </div>
       ${cards}`;
 
     updateSelectionCounter();
   }
 
+  /* ── Render: quote → stacked line-item cards ────────────────────────────── */
   function renderQuote(status, data, elapsed) {
     const body = document.getElementById('results-body');
     hidePlaceholder();
@@ -722,7 +884,6 @@
       document.getElementById('result-count').textContent = 'no quote';
       body.innerHTML = stateCard('empty', 'NO_QUOTE', data.message); return;
     }
-
     if (data.status !== 'QUOTE_READY') {
       setStatus('error', 'UNEXPECTED RESPONSE', `status=${data.status} · ${elapsed}ms`);
       document.getElementById('result-count').textContent = 'ERROR';
@@ -731,31 +892,44 @@
 
     const items = data.line_items || [];
     const s     = data.summary;
-    setStatus('ok', 'QUOTE READY', `${items.length} line item${items.length !== 1 ? 's' : ''} · ${fmt(s.grand_total_usd)} total`);
+    setStatus('ok', 'QUOTE READY', `${items.length} item${items.length !== 1 ? 's' : ''} · ${fmt(s.grand_total_usd)} total`);
     document.getElementById('result-count').textContent = `${items.length} items · ${fmt(s.grand_total_usd)}`;
+    document.getElementById('btn-pdf').classList.add('pulse');
 
-    const rows = items.map(li => `
-      <tr>
-        <td>${escHtml(li.part_number)}</td>
-        <td class="td-brand">${escHtml(li.brand)}</td>
-        <td><span class="td-type">${escHtml(li.product_type)}</span></td>
-        <td class="num">${fmt(li.base_price_usd)}</td>
-        <td class="num">${li.labor_hours}h</td>
-        <td class="num">${fmt(li.labor_cost_usd)}</td>
-        <td class="total">${fmt(li.line_total_usd)}</td>
-      </tr>`).join('');
+    const itemCards = items.map(li => `
+      <div class="qi-card">
+        <div class="qi-top">
+          <div>
+            <div class="qi-pn">${escHtml(li.part_number)}</div>
+            <div class="qi-brand">${escHtml(li.brand)}${li.line_name ? ' · ' + escHtml(li.line_name) : ''}</div>
+          </div>
+          <span class="pill-type">${escHtml(li.product_type)}</span>
+        </div>
+        <hr class="qi-hr">
+        <div class="qi-grid">
+          <div class="qi-cell">
+            <span class="qi-cell-lbl">Parts $</span>
+            <span class="qi-cell-val">${fmt(li.base_price_usd)}</span>
+          </div>
+          <div class="qi-cell">
+            <span class="qi-cell-lbl">Labor Hrs</span>
+            <span class="qi-cell-val">${li.labor_hours}h</span>
+          </div>
+          <div class="qi-cell">
+            <span class="qi-cell-lbl">Labor $</span>
+            <span class="qi-cell-val">${fmt(li.labor_cost_usd)}</span>
+          </div>
+        </div>
+        <hr class="qi-hr">
+        <div class="qi-total">
+          <span class="qi-total-lbl">Line Total</span>
+          <span class="qi-total-val">${fmt(li.line_total_usd)}</span>
+        </div>
+      </div>`).join('');
 
     body.innerHTML = `
-      <div class="quote-table-wrap">
-        <table class="qt">
-          <thead><tr>
-            <th>PART #</th><th>BRAND</th><th>TYPE</th>
-            <th>PARTS&nbsp;$</th><th>LABOR&nbsp;HRS</th><th>LABOR&nbsp;$</th><th>LINE TOTAL</th>
-          </tr></thead>
-          <tbody>${rows}</tbody>
-        </table>
-      </div>
-      <div class="quote-summary">
+      ${itemCards}
+      <div class="q-summary">
         <div class="qs-divider-thin"></div>
         <div class="qs-row"><span class="qs-label">PARTS TOTAL</span><span class="qs-val">${fmt(s.parts_total_usd)}</span></div>
         <div class="qs-row"><span class="qs-label">LABOR TOTAL</span><span class="qs-val">${fmt(s.labor_total_usd)}</span></div>
@@ -769,6 +943,7 @@
       </div>`;
   }
 
+  /* ── Network error ──────────────────────────────────────────────────────── */
   function renderNetworkError(msg, elapsed) {
     hidePlaceholder();
     setStatus('error', 'NETWORK ERROR', elapsed + 'ms');
@@ -776,6 +951,7 @@
     document.getElementById('results-body').innerHTML = stateCard('error', 'NETWORK_ERROR', escHtml(msg));
   }
 
+  /* ── Helpers ────────────────────────────────────────────────────────────── */
   function hidePlaceholder() {
     const p = document.getElementById('placeholder');
     if (p) p.style.display = 'none';
@@ -784,8 +960,6 @@
   function stateCard(cls, code, msg) {
     return `<div class="state-card ${cls}"><div class="sc-code">${escHtml(code)}</div>${escHtml(msg)}</div>`;
   }
-
-  function toggleRaw(id) { document.getElementById(id).classList.toggle('visible'); }
 </script>
 </body>
 </html>
