@@ -2,7 +2,7 @@
 
 const PDFDocument = require('pdfkit');
 
-// ── Palette ──────────────────────────────────────────────────────────────────
+// ── Palette ───────────────────────────────────────────────────────────────────
 const C = {
   accent:   '#00D4FF',
   darkBg:   '#1A1A2E',
@@ -13,6 +13,9 @@ const C = {
   dark:     '#1A1A1A',
   mid:      '#444444',
   white:    '#FFFFFF',
+  green:    '#00AA55',
+  amber:    '#CC8800',
+  red:      '#CC2222',
 };
 
 // ── Helpers ───────────────────────────────────────────────────────────────────
@@ -20,78 +23,77 @@ function fmtUSD(n) {
   return '$' + Number(n).toFixed(2).replace(/\B(?=(\d{3})+(?!\d))/g, ',');
 }
 
-function quoteNumber() {
+function blueprintNumber() {
   const d   = new Date();
   const ymd = d.toISOString().slice(0, 10).replace(/-/g, '');
   const rnd = String(Math.floor(Math.random() * 9000) + 1000);
-  return `QT-${ymd}-${rnd}`;
+  return `BLP-${ymd}-${rnd}`;
 }
 
-// Draw one text cell within a bounding box — handles right/left/center align.
-// Uses explicit x,y so PDFKit's internal cursor position doesn't affect us.
 function cell(doc, text, x, y, w, opts = {}) {
-  const { align = 'left', font = 'Helvetica', size = 8, color = C.dark, pad = 5 } = opts;
+  const { align = 'left', font = 'Helvetica', size = 8, color = C.dark, pad = 4 } = opts;
   doc.font(font).fontSize(size).fillColor(color);
   doc.text(String(text ?? ''), x + pad, y, { width: w - pad * 2, align, lineBreak: false });
 }
 
 // ── Main export ───────────────────────────────────────────────────────────────
-function generateQuotePdf(quoteData, outputStream) {
+function generateQuotePdf(quoteData, shop, outputStream) {
   const doc = new PDFDocument({
     size: 'LETTER',
     margins: { top: 40, bottom: 50, left: 50, right: 50 },
-    info: { Title: 'ApexFitment Quote', Author: 'ApexFitment Engine v1.0' },
+    info: { Title: 'ApexFitment Engineering Fitment Blueprint', Author: shop ? shop.shop_name : 'ApexFitment Engine' },
   });
 
   doc.pipe(outputStream);
 
-  const L = 50;   // left margin
-  const R = 562;  // right edge  (612 − 50)
-  const W = 512;  // usable width
+  const L = 50;
+  const R = 562;
+  const W = 512;
 
-  const qn  = quoteNumber();
+  const bn  = blueprintNumber();
   const now = new Date();
   const dateStr = now.toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' });
   const timeStr = now.toLocaleTimeString('en-US', { hour12: false });
 
-  // ── HEADER ────────────────────────────────────────────────────────────────
+  // ── HEADER ─────────────────────────────────────────────────────────────────
   let y = 40;
 
-  // Brand mark (left)
-  doc.font('Helvetica-Bold').fontSize(26).fillColor(C.accent).text('APEXFITMENT', L, y);
-  doc.font('Helvetica').fontSize(9).fillColor(C.gray)
-     .text('Deterministic Compatibility · Zero Guesswork', L, y + 33);
+  // Shop branding (left)
+  const shopName = shop?.shop_name || 'ApexFitment';
+  const shopCity = shop?.city && shop?.state ? `${shop.city}, ${shop.state}` : (shop?.state || 'TX');
+  doc.font('Helvetica-Bold').fontSize(20).fillColor(C.darkBg).text(shopName, L, y);
+  doc.font('Helvetica').fontSize(9).fillColor(C.gray).text(shopCity, L, y + 26);
 
-  // Quote meta (right)
+  // Blueprint meta (right)
   doc.font('Helvetica-Bold').fontSize(11).fillColor(C.dark)
-     .text('QUOTE DOCUMENT', L, y, { width: W, align: 'right' });
+     .text('ENGINEERING FITMENT BLUEPRINT', L, y, { width: W, align: 'right' });
   doc.font('Courier-Bold').fontSize(9).fillColor(C.accent)
-     .text(qn, L, y + 16, { width: W, align: 'right' });
+     .text(bn, L, y + 16, { width: W, align: 'right' });
   doc.font('Helvetica').fontSize(8).fillColor(C.gray)
      .text(`${dateStr}  ${timeStr}`, L, y + 28, { width: W, align: 'right' });
 
   // Separator
-  y = 90;
+  y = 88;
   doc.moveTo(L, y).lineTo(R, y).strokeColor(C.accent).lineWidth(1).stroke();
 
   // ── BUILD CONFIGURATION ────────────────────────────────────────────────────
-  y = 100;
+  y = 98;
   doc.font('Helvetica-Bold').fontSize(7).fillColor(C.gray)
      .text('BUILD CONFIGURATION', L, y, { characterSpacing: 1.2 });
 
-  y = 112;
+  y = 110;
   const boxH = 44;
   doc.rect(L, y, W, boxH).fillColor(C.lightGray).fill();
   doc.rect(L, y, W, boxH).strokeColor(C.border).lineWidth(0.5).stroke();
 
   const build = quoteData.build || {};
   const buildCols = [
-    ['YEAR',        String(build.year || '—')],
-    ['MAKE',        build.make || '—'],
-    ['MODEL',       build.model || '—'],
-    ['ENGINE',      build.engine_displacement || '—'],
-    ['SUBMODEL',    build.payload_chassis || '—'],
-    ['DRIVETRAIN',  build.drivetrain || '—'],
+    ['YEAR',       String(build.year || '—')],
+    ['MAKE',       build.make || '—'],
+    ['MODEL',      build.model || '—'],
+    ['ENGINE',     build.engine_displacement || '—'],
+    ['SUBMODEL',   build.payload_chassis || '—'],
+    ['DRIVETRAIN', build.drivetrain || '—'],
   ];
   const colW = W / buildCols.length;
   buildCols.forEach(([label, value], i) => {
@@ -103,101 +105,142 @@ function generateQuotePdf(quoteData, outputStream) {
   });
 
   // ── LINE ITEMS TABLE ───────────────────────────────────────────────────────
-  y = 170;
+  y = 168;
   doc.font('Helvetica-Bold').fontSize(7).fillColor(C.gray)
      .text('LINE ITEMS', L, y, { characterSpacing: 1.2 });
 
-  y = 182;
+  y = 180;
 
-  // Column layout — total = 512
+  // 9 columns — total = 512
   const cols = [
-    { label: 'PART #',        x: L,       w: 108, align: 'left'  },
-    { label: 'BRAND',         x: L + 108, w: 75,  align: 'left'  },
-    { label: 'PRODUCT TYPE',  x: L + 183, w: 100, align: 'left'  },
-    { label: 'PARTS $',       x: L + 283, w: 58,  align: 'right' },
-    { label: 'LABOR HRS',     x: L + 341, w: 48,  align: 'right' },
-    { label: 'LABOR $',       x: L + 389, w: 55,  align: 'right' },
-    { label: 'LINE TOTAL',    x: L + 444, w: 68,  align: 'right' },
+    { label: 'PART #',     x: L,       w: 80,  align: 'left'  },
+    { label: 'BRAND',      x: L + 80,  w: 60,  align: 'left'  },
+    { label: 'TYPE',       x: L + 140, w: 70,  align: 'left'  },
+    { label: 'TELEMETRY',  x: L + 210, w: 70,  align: 'left'  },
+    { label: 'PARTS $',    x: L + 280, w: 50,  align: 'right' },
+    { label: 'LBR HRS',    x: L + 330, w: 38,  align: 'right' },
+    { label: 'LABOR $',    x: L + 368, w: 48,  align: 'right' },
+    { label: 'FAB $',      x: L + 416, w: 44,  align: 'right' },
+    { label: 'LINE TOTAL', x: L + 460, w: 52,  align: 'right' },
   ];
 
-  const ROW_H = 18;
+  const ROW_H    = 18;
+  const DIAG_H   = 14;
 
   // Header row
   doc.rect(L, y, W, ROW_H).fillColor(C.darkBg).fill();
   cols.forEach(c => {
-    cell(doc, c.label, c.x, y + 5, c.w, {
-      align: c.align, font: 'Helvetica-Bold', size: 6.5, color: C.white, pad: 4,
-    });
+    cell(doc, c.label, c.x, y + 5, c.w, { align: c.align, font: 'Helvetica-Bold', size: 6.5, color: C.white, pad: 4 });
   });
   y += ROW_H;
 
-  // Data rows
   const items = quoteData.line_items || [];
+  let hasFab = false;
+
   items.forEach((item, idx) => {
     const bg = idx % 2 === 0 ? C.white : C.rowAlt;
     doc.rect(L, y, W, ROW_H).fillColor(bg).fill();
     doc.rect(L, y, W, ROW_H).strokeColor(C.border).lineWidth(0.3).stroke();
 
-    cell(doc, item.part_number,   cols[0].x, y + 5, cols[0].w, { font: 'Courier',           size: 7,   color: C.dark, pad: 4 });
-    cell(doc, item.brand,         cols[1].x, y + 5, cols[1].w, { font: 'Helvetica-Bold',     size: 7.5, color: C.dark, pad: 4 });
-    cell(doc, item.product_type,  cols[2].x, y + 5, cols[2].w, { font: 'Helvetica',          size: 7,   color: C.mid,  pad: 4 });
-    cell(doc, fmtUSD(item.base_price_usd), cols[3].x, y + 5, cols[3].w, { font: 'Helvetica', size: 7.5, color: C.dark, align: 'right', pad: 4 });
-    cell(doc, `${item.labor_hours}h`,      cols[4].x, y + 5, cols[4].w, { font: 'Helvetica', size: 7.5, color: C.gray, align: 'right', pad: 4 });
-    cell(doc, fmtUSD(item.labor_cost_usd), cols[5].x, y + 5, cols[5].w, { font: 'Helvetica', size: 7.5, color: C.dark, align: 'right', pad: 4 });
-    cell(doc, fmtUSD(item.line_total_usd), cols[6].x, y + 5, cols[6].w, { font: 'Helvetica-Bold', size: 7.5, color: C.dark, align: 'right', pad: 4 });
+    // TELEMETRY cell color + text
+    let telemColor = C.green;
+    let telemText  = '✓ All nominal';
+    if (item.fitment_status === 'FABRICATION_REQUIRED') {
+      telemColor = C.amber; telemText = 'Fab Req.'; hasFab = true;
+    } else if (item.fitment_status === 'CAUTION') {
+      telemColor = C.amber; telemText = '⚠ Fab needed'; hasFab = true;
+    } else if (item.fitment_status === 'INCOMPATIBLE') {
+      telemColor = C.red;   telemText = '✗ Hard clash';
+    }
+
+    // Left border stripe for non-confirmed
+    if (item.fitment_status !== 'CONFIRMED') {
+      doc.rect(L, y, 3, ROW_H).fillColor(telemColor).fill();
+    }
+
+    cell(doc, item.part_number,   cols[0].x, y + 5, cols[0].w, { font: 'Courier',       size: 7,   color: C.dark,  pad: 4 });
+    cell(doc, item.brand,         cols[1].x, y + 5, cols[1].w, { font: 'Helvetica-Bold', size: 7.5, color: C.dark,  pad: 4 });
+    cell(doc, item.product_type,  cols[2].x, y + 5, cols[2].w, { font: 'Helvetica',      size: 7,   color: C.mid,   pad: 4 });
+    cell(doc, telemText,          cols[3].x, y + 5, cols[3].w, { font: 'Helvetica-Bold', size: 7,   color: telemColor, pad: 4 });
+    cell(doc, fmtUSD(item.base_price_usd),       cols[4].x, y + 5, cols[4].w, { font: 'Helvetica', size: 7.5, color: C.dark, align: 'right', pad: 4 });
+    cell(doc, `${item.labor_hours}h`,             cols[5].x, y + 5, cols[5].w, { font: 'Helvetica', size: 7.5, color: C.gray, align: 'right', pad: 4 });
+    cell(doc, fmtUSD(item.labor_cost_usd),        cols[6].x, y + 5, cols[6].w, { font: 'Helvetica', size: 7.5, color: C.dark, align: 'right', pad: 4 });
+    cell(doc, item.fabrication_labor_cost > 0 ? fmtUSD(item.fabrication_labor_cost) : '—',
+              cols[7].x, y + 5, cols[7].w, { font: 'Helvetica', size: 7.5, color: item.fabrication_labor_cost > 0 ? C.amber : C.gray, align: 'right', pad: 4 });
+    cell(doc, fmtUSD(item.line_total_usd),        cols[8].x, y + 5, cols[8].w, { font: 'Helvetica-Bold', size: 7.5, color: C.dark, align: 'right', pad: 4 });
 
     y += ROW_H;
+
+    // Diagnostic sub-row
+    if (item.diagnostics) {
+      doc.rect(L, y, W, DIAG_H).fillColor('#FFFBF0').fill();
+      doc.font('Helvetica').fontSize(6.5).fillColor(telemColor)
+         .text(item.diagnostics, L + 8, y + 3, { width: W - 16, lineBreak: false });
+      y += DIAG_H;
+    }
   });
 
-  // Bottom border of table
   doc.moveTo(L, y).lineTo(R, y).strokeColor(C.border).lineWidth(0.5).stroke();
 
-  // ── SUMMARY (bottom-right block, 220pt wide) ───────────────────────────────
+  // ── FABRICATION SECTION ────────────────────────────────────────────────────
+  if (hasFab) {
+    y += 14;
+    doc.font('Helvetica-Bold').fontSize(7).fillColor(C.amber)
+       .text('FABRICATION ADVISORY', L, y, { characterSpacing: 1.2 });
+    y += 10;
+    const fabItems = items.filter(i => i.fabrication_required);
+    fabItems.forEach(fi => {
+      doc.font('Helvetica').fontSize(7.5).fillColor(C.mid)
+         .text(`• ${fi.part_number} — ${fi.fitment_label}${fi.fabrication_labor_hours > 0 ? ` (${fi.fabrication_labor_hours}h @ ${fmtUSD(shop?.labor_rate_fabrication || 250)}/hr)` : ''}`,
+           L + 8, y, { width: W - 16 });
+      y += 12;
+    });
+    doc.moveTo(L, y).lineTo(R, y).strokeColor(C.border).lineWidth(0.3).stroke();
+  }
+
+  // ── SUMMARY ────────────────────────────────────────────────────────────────
   y += 16;
-  const SX  = R - 220;   // summary block left edge
-  const SW  = 220;       // summary block width
+  const SX = R - 220;
+  const SW = 220;
+  const s  = quoteData.summary || {};
 
-  const s = quoteData.summary || {};
-
-  const summaryRow = (label, value, yPos, bold = false) => {
+  const summaryRow = (label, value, yPos, bold = false, color = C.dark) => {
     const fnt = bold ? 'Helvetica-Bold' : 'Helvetica';
     const sz  = bold ? 10 : 9;
-    doc.font(fnt).fontSize(sz).fillColor(C.dark)
-       .text(label, SX, yPos, { width: SW * 0.55, lineBreak: false });
-    doc.font(fnt).fontSize(sz).fillColor(C.dark)
-       .text(value, SX, yPos, { width: SW, align: 'right', lineBreak: false });
+    doc.font(fnt).fontSize(sz).fillColor(color).text(label, SX, yPos, { width: SW * 0.55, lineBreak: false });
+    doc.font(fnt).fontSize(sz).fillColor(color).text(value, SX, yPos, { width: SW, align: 'right', lineBreak: false });
   };
 
-  summaryRow('PARTS TOTAL', fmtUSD(s.parts_total_usd || 0), y);
-  summaryRow('LABOR TOTAL', fmtUSD(s.labor_total_usd || 0), y + 14);
+  summaryRow('PARTS TOTAL',       fmtUSD(s.parts_total_usd || 0),       y);
+  summaryRow('LABOR TOTAL',       fmtUSD(s.labor_total_usd || 0),       y + 14);
+  if ((s.fabrication_total_usd || 0) > 0) {
+    summaryRow('FABRICATION TOTAL', fmtUSD(s.fabrication_total_usd),    y + 28, false, C.amber);
+  }
 
-  // Double rule
-  const ruleY = y + 30;
+  const ruleOffset = (s.fabrication_total_usd || 0) > 0 ? 44 : 30;
+  const ruleY = y + ruleOffset;
   doc.moveTo(SX, ruleY).lineTo(R, ruleY).strokeColor(C.dark).lineWidth(0.8).stroke();
   doc.moveTo(SX, ruleY + 3).lineTo(R, ruleY + 3).strokeColor(C.dark).lineWidth(0.8).stroke();
 
-  // Grand total
   const gtY = ruleY + 10;
-  doc.font('Helvetica-Bold').fontSize(13).fillColor(C.dark)
+  doc.font('Helvetica-Bold').fontSize(13).fillColor(C.green)
      .text('GRAND TOTAL', SX, gtY, { width: SW * 0.55, lineBreak: false });
-  doc.font('Helvetica-Bold').fontSize(13).fillColor(C.dark)
+  doc.font('Helvetica-Bold').fontSize(13).fillColor(C.green)
      .text(fmtUSD(s.grand_total_usd || 0), SX, gtY, { width: SW, align: 'right', lineBreak: false });
 
   doc.font('Helvetica').fontSize(7).fillColor(C.gray)
-     .text('All prices in USD · Labor rate: $125.00/hr', SX, gtY + 18, { width: SW, align: 'right' });
+     .text(`All prices in USD · Labor rate: ${fmtUSD(shop?.labor_rate || 125)}/hr`, SX, gtY + 18, { width: SW, align: 'right' });
 
-  // ── FOOTER ────────────────────────────────────────────────────────────────
+  // ── FOOTER ─────────────────────────────────────────────────────────────────
   const FY = 742;
   doc.moveTo(L, FY).lineTo(R, FY).strokeColor(C.border).lineWidth(0.5).stroke();
 
   const FTY = FY + 8;
+  const shopLine = shop ? `${shop.shop_name} · ${shopCity}` : '';
   doc.font('Helvetica').fontSize(7).fillColor(C.gray);
-  doc.text('Generated by ApexFitment Engine v1.0 · apexfitment.com', L, FTY,
-           { width: W * 0.38, lineBreak: false });
-  doc.text('Houston, TX 77096 · United States', L + W * 0.38, FTY,
-           { width: W * 0.24, align: 'center', lineBreak: false });
-  doc.text('This quote is valid for 30 days from generation date', L + W * 0.62, FTY,
-           { width: W * 0.38, align: 'right', lineBreak: false });
+  doc.text(shopLine, L, FTY, { width: W * 0.38, lineBreak: false });
+  doc.text('Powered by ApexFitment', L + W * 0.38, FTY, { width: W * 0.24, align: 'center', lineBreak: false });
+  doc.text('Blueprint valid 30 days from generation date', L + W * 0.62, FTY, { width: W * 0.38, align: 'right', lineBreak: false });
 
   doc.end();
 }

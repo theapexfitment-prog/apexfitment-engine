@@ -7,6 +7,10 @@
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;600;700&display=swap" rel="stylesheet" />
+  <script async crossorigin="anonymous"
+    data-clerk-publishable-key="pk_test_c291bmQtZ3JhY2tsZS03OC5jbGVyay5hY2NvdW50cy5kZXYk"
+    src="https://cdn.jsdelivr.net/npm/@clerk/clerk-js@latest/dist/clerk.browser.js"
+    type="text/javascript"></script>
   <style>
     /* ── Design tokens ───────────────────────────────────────────────────── */
     :root {
@@ -35,33 +39,94 @@
       --r-pill:       20px;
     }
 
-    /* ── Reset ───────────────────────────────────────────────────────────── */
     *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
     html { scroll-behavior: smooth; -webkit-text-size-adjust: 100%; }
     body {
-      background: var(--bg);
-      color: var(--text);
-      font-family: var(--sans);
-      font-size: 14px;
-      line-height: 1.6;
-      min-height: 100svh;
-      overflow-x: hidden;
+      background: var(--bg); color: var(--text);
+      font-family: var(--sans); font-size: 14px; line-height: 1.6;
+      min-height: 100svh; overflow-x: hidden;
     }
-
-    /* Subtle grid texture */
     body::before {
-      content: '';
-      position: fixed; inset: 0; pointer-events: none; z-index: 0;
+      content: ''; position: fixed; inset: 0; pointer-events: none; z-index: 0;
       background-image:
         linear-gradient(rgba(0,212,255,.013) 1px, transparent 1px),
         linear-gradient(90deg, rgba(0,212,255,.013) 1px, transparent 1px);
       background-size: 48px 48px;
     }
 
+    /* ── Auth overlay ────────────────────────────────────────────────────── */
+    #auth-overlay {
+      position: fixed; inset: 0; z-index: 500;
+      background: var(--bg);
+      display: flex; align-items: center; justify-content: center;
+      padding: 20px;
+    }
+    #auth-overlay.hidden { display: none; }
+    .auth-box {
+      width: 100%; max-width: 400px;
+      background: var(--surface); border: 1px solid var(--border-lit);
+      border-radius: 12px; padding: 36px 32px;
+      display: flex; flex-direction: column; gap: 0;
+    }
+    .auth-logo {
+      font-family: var(--mono); font-size: 18px; font-weight: 700;
+      letter-spacing: .18em; text-transform: uppercase;
+      color: var(--accent); text-shadow: 0 0 18px var(--accent-glow);
+      margin-bottom: 6px;
+    }
+    .auth-tag { font-size: 11px; color: var(--text-dim); margin-bottom: 28px; }
+    .auth-title {
+      font-family: var(--mono); font-size: 13px; font-weight: 700;
+      letter-spacing: .1em; text-transform: uppercase;
+      color: var(--text-bright); margin-bottom: 20px;
+    }
+    .auth-field { display: flex; flex-direction: column; gap: 5px; margin-bottom: 14px; }
+    .auth-field label {
+      font-family: var(--mono); font-size: 10px; font-weight: 500;
+      letter-spacing: .15em; text-transform: uppercase; color: var(--text-dim);
+    }
+    .auth-field input {
+      height: 44px; width: 100%; padding: 0 12px;
+      background: var(--bg); border: 1px solid var(--border-lit);
+      border-radius: var(--r-input); color: var(--text);
+      font-family: var(--mono); font-size: 13px;
+      outline: none; transition: border-color .15s, box-shadow .15s;
+    }
+    .auth-field input:focus { border-color: var(--accent); box-shadow: 0 0 0 3px rgba(0,212,255,.1); }
+    .auth-btn {
+      width: 100%; height: 48px; border: none; border-radius: var(--r-input);
+      cursor: pointer; font-family: var(--mono); font-weight: 700;
+      font-size: 11px; text-transform: uppercase; letter-spacing: .16em;
+      transition: background .15s, box-shadow .15s;
+      margin-top: 4px;
+    }
+    .auth-btn.primary { background: var(--accent); color: var(--bg); }
+    .auth-btn.primary:hover { background: #1adcff; box-shadow: 0 0 20px var(--accent-glow); }
+    .auth-btn.secondary {
+      background: transparent; color: var(--accent);
+      border: 1.5px solid var(--accent); margin-top: 10px;
+    }
+    .auth-btn.secondary:hover { background: var(--accent-dim); }
+    .auth-switch {
+      margin-top: 18px; text-align: center;
+      font-size: 12px; color: var(--text-dim);
+    }
+    .auth-switch a { color: var(--accent); cursor: pointer; text-decoration: none; }
+    .auth-switch a:hover { text-decoration: underline; }
+    .auth-error {
+      font-family: var(--mono); font-size: 11px; color: var(--red);
+      background: var(--red-dim); border: 1px solid rgba(255,68,68,.3);
+      border-radius: 4px; padding: 8px 10px; margin-bottom: 12px; display: none;
+    }
+    .auth-info {
+      font-family: var(--mono); font-size: 11px; color: var(--amber);
+      background: var(--amber-dim); border: 1px solid rgba(255,184,0,.3);
+      border-radius: 4px; padding: 10px 12px; line-height: 1.8;
+    }
+
     /* ── Header ──────────────────────────────────────────────────────────── */
     .hdr {
-      position: sticky; top: 0; z-index: 200;
-      height: 56px;
+      position: sticky; top: 0; z-index: 200; height: 56px;
       background: rgba(10,10,15,0.88);
       backdrop-filter: blur(14px); -webkit-backdrop-filter: blur(14px);
       border-bottom: 1px solid var(--border);
@@ -86,29 +151,46 @@
       letter-spacing: .18em; text-transform: uppercase;
       color: var(--accent); text-shadow: 0 0 18px var(--accent-glow);
     }
-    .logo-tag {
+    .logo-shop-name {
       font-family: var(--sans); font-size: 10px; color: var(--text-dim);
-      letter-spacing: .04em; display: none;
-    }
-    @media (min-width: 520px) { .logo-tag { display: block; } }
-
-    .sys-pill {
-      display: flex; align-items: center; gap: 6px; flex-shrink: 0;
-      background: rgba(0,255,136,.05); border: 1px solid rgba(0,255,136,.2);
-      border-radius: var(--r-pill); padding: 5px 10px;
-      font-family: var(--mono); font-size: 9px; font-weight: 600;
-      letter-spacing: .12em; color: var(--green); text-transform: uppercase;
-    }
-    .sys-dot {
-      width: 6px; height: 6px; border-radius: 50%; background: var(--green);
-      box-shadow: 0 0 8px var(--green); flex-shrink: 0;
-      animation: blink 2s ease-in-out infinite;
-    }
-    @keyframes blink {
-      0%,100% { opacity:1; box-shadow: 0 0 8px var(--green); }
-      50%      { opacity:.35; box-shadow: none; }
+      letter-spacing: .03em;
     }
     @media (min-width: 640px) { .hdr { height: 64px; } }
+
+    /* User menu */
+    .user-menu { position: relative; flex-shrink: 0; }
+    .user-btn {
+      display: flex; align-items: center; gap: 7px; flex-shrink: 0;
+      background: var(--surface-2); border: 1px solid var(--border-lit);
+      border-radius: var(--r-pill); padding: 6px 12px; cursor: pointer;
+      font-family: var(--mono); font-size: 10px; font-weight: 600;
+      letter-spacing: .1em; color: var(--text); transition: background .15s;
+      -webkit-tap-highlight-color: transparent;
+    }
+    .user-btn:hover { background: var(--border); }
+    .user-dot {
+      width: 6px; height: 6px; border-radius: 50%; background: var(--green);
+      box-shadow: 0 0 8px var(--green); flex-shrink: 0;
+    }
+    .user-dropdown {
+      position: absolute; top: calc(100% + 6px); right: 0;
+      min-width: 180px;
+      background: var(--surface); border: 1px solid var(--border-lit);
+      border-radius: var(--r-card); overflow: hidden;
+      box-shadow: 0 8px 32px rgba(0,0,0,.5);
+      display: none; z-index: 300;
+    }
+    .user-dropdown.open { display: block; }
+    .dd-item {
+      display: block; width: 100%; padding: 11px 16px;
+      font-family: var(--mono); font-size: 11px; font-weight: 500;
+      letter-spacing: .08em; text-transform: uppercase; color: var(--text);
+      background: transparent; border: none; cursor: pointer; text-align: left;
+      transition: background .12s; -webkit-tap-highlight-color: transparent;
+    }
+    .dd-item:hover { background: var(--surface-2); }
+    .dd-item.danger { color: var(--red); }
+    .dd-sep { height: 1px; background: var(--border); margin: 4px 0; }
 
     /* ── Page layout ─────────────────────────────────────────────────────── */
     .page {
@@ -120,21 +202,13 @@
     }
     @media (min-width: 900px) {
       .page {
-        display: grid;
-        grid-template-columns: 390px 1fr;
-        align-items: start;
-        gap: 20px;
-        padding: 24px 24px 48px;
+        display: grid; grid-template-columns: 390px 1fr;
+        align-items: start; gap: 20px; padding: 24px 24px 48px;
       }
     }
 
     /* ── Card shell ──────────────────────────────────────────────────────── */
-    .card {
-      background: var(--surface);
-      border: 1px solid var(--border);
-      border-radius: var(--r-card);
-      overflow: hidden;
-    }
+    .card { background: var(--surface); border: 1px solid var(--border); border-radius: var(--r-card); overflow: hidden; }
     .card-hdr {
       display: flex; align-items: center; gap: 8px;
       padding: 10px 16px; border-bottom: 1px solid var(--border);
@@ -147,16 +221,9 @@
     /* ── Form panel ──────────────────────────────────────────────────────── */
     .form-card { border-left: 3px solid var(--accent); }
     .form-body { padding: 16px; }
-
-    .form-grid {
-      display: grid;
-      grid-template-columns: 1fr 1fr;
-      gap: 10px;
-      margin-bottom: 14px;
-    }
+    .form-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-bottom: 14px; }
     .field { display: flex; flex-direction: column; gap: 5px; }
     .field.full { grid-column: 1 / -1; }
-
     .field label {
       font-family: var(--mono); font-size: 10px; font-weight: 500;
       letter-spacing: .15em; text-transform: uppercase; color: var(--text-dim);
@@ -169,22 +236,16 @@
       outline: none; appearance: none; -webkit-appearance: none;
       transition: border-color .15s, box-shadow .15s;
     }
-    .field input:focus, .field select:focus {
-      border-color: var(--accent);
-      box-shadow: 0 0 0 3px rgba(0,212,255,.1);
-    }
+    .field input:focus, .field select:focus { border-color: var(--accent); box-shadow: 0 0 0 3px rgba(0,212,255,.1); }
     .field input::placeholder { color: var(--text-dim); font-style: italic; }
     .field select {
       background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='8' viewBox='0 0 12 8'%3E%3Cpath d='M1 1l5 5 5-5' stroke='%236b6b80' stroke-width='1.5' fill='none' stroke-linecap='round'/%3E%3C/svg%3E");
-      background-repeat: no-repeat;
-      background-position: right 12px center;
-      padding-right: 32px;
+      background-repeat: no-repeat; background-position: right 12px center; padding-right: 32px;
     }
     .field select option { background: var(--surface); color: var(--text); }
 
-    /* ── Action buttons ──────────────────────────────────────────────────── */
+    /* ── Buttons ─────────────────────────────────────────────────────────── */
     .btn-group { display: flex; flex-direction: column; gap: 8px; }
-
     .btn {
       width: 100%; border: none; border-radius: var(--r-input);
       cursor: pointer; display: flex; align-items: center; justify-content: center; gap: 8px;
@@ -195,48 +256,25 @@
     }
     .btn:active:not(:disabled) { transform: scale(.98); }
     .btn:disabled { opacity: .4; cursor: not-allowed; }
-
-    /* Button 1 — RUN COMPATIBILITY QUERY */
-    .btn-run {
-      height: 52px; font-size: 11px;
-      background: transparent; color: var(--accent);
-      border: 1.5px solid var(--accent);
-    }
+    .btn-run { height: 52px; font-size: 11px; background: transparent; color: var(--accent); border: 1.5px solid var(--accent); }
     .btn-run:hover:not(:disabled) { background: var(--accent-dim); box-shadow: 0 0 20px var(--accent-glow); }
-
-    /* Button 2 — GENERATE QUOTE */
-    .btn-quote {
-      height: 52px; font-size: 11px;
-      background: var(--accent); color: var(--bg);
-    }
+    .btn-quote { height: 52px; font-size: 11px; background: var(--accent); color: var(--bg); }
     .btn-quote:hover:not(:disabled) { background: #1adcff; box-shadow: 0 0 20px var(--accent-glow); }
-
-    /* Button 3 — EXPORT PDF */
-    .btn-pdf {
-      height: 60px; font-size: 16px;
-      background: var(--amber); color: var(--bg);
-    }
+    .btn-pdf { height: 60px; font-size: 16px; background: var(--amber); color: var(--bg); }
     .btn-pdf:hover:not(:disabled) { background: #ffc31a; box-shadow: 0 0 20px rgba(255,184,0,.28); }
     .btn-pdf.pulse { animation: pdf-pulse 2.4s ease-in-out infinite; }
-    @keyframes pdf-pulse {
-      0%,100% { box-shadow: 0 0 0 0 rgba(255,184,0,0); }
-      50%      { box-shadow: 0 0 0 7px rgba(255,184,0,.18); }
-    }
+    @keyframes pdf-pulse { 0%,100% { box-shadow: 0 0 0 0 rgba(255,184,0,0); } 50% { box-shadow: 0 0 0 7px rgba(255,184,0,.18); } }
     @media (min-width: 900px) { .btn-pdf { height: 52px; font-size: 13px; } }
-
-    /* Loading spinner */
     .btn-spinner {
       width: 14px; height: 14px; border-radius: 50%; flex-shrink: 0;
-      border: 2px solid rgba(255,255,255,.2);
-      border-top-color: currentColor;
-      animation: spin .7s linear infinite;
-      display: none;
+      border: 2px solid rgba(255,255,255,.2); border-top-color: currentColor;
+      animation: spin .7s linear infinite; display: none;
     }
     .btn.loading .btn-spinner { display: block; }
     .btn.loading .btn-label   { display: none; }
     @keyframes spin { to { transform: rotate(360deg); } }
 
-    /* ── Query preview (collapsible) ─────────────────────────────────────── */
+    /* ── Query preview ───────────────────────────────────────────────────── */
     .qp-wrap { margin-top: 12px; }
     .qp-wrap details summary {
       font-family: var(--mono); font-size: 10px; font-weight: 600;
@@ -246,10 +284,7 @@
       -webkit-tap-highlight-color: transparent;
     }
     .qp-wrap details summary::-webkit-details-marker { display: none; }
-    .qp-wrap details summary::before {
-      content: '▶'; font-size: 8px; display: inline-block;
-      transition: transform .15s;
-    }
+    .qp-wrap details summary::before { content: '▶'; font-size: 8px; display: inline-block; transition: transform .15s; }
     .qp-wrap details[open] summary::before { transform: rotate(90deg); }
     .query-preview {
       background: var(--bg); border: 1px solid var(--border);
@@ -263,9 +298,7 @@
 
     /* ── Results panel ───────────────────────────────────────────────────── */
     .results-card { display: flex; flex-direction: column; }
-    .results-body {
-      padding: 16px; min-height: 240px;
-    }
+    .results-body { padding: 16px; min-height: 240px; }
     @media (min-width: 900px) {
       .results-body { max-height: 76vh; overflow-y: auto; }
       .results-body::-webkit-scrollbar { width: 4px; }
@@ -273,7 +306,7 @@
       .results-body::-webkit-scrollbar-thumb { background: var(--border-lit); border-radius: 2px; }
     }
 
-    /* Placeholder */
+    /* ── Placeholder ─────────────────────────────────────────────────────── */
     .placeholder {
       min-height: 220px; display: flex; flex-direction: column;
       align-items: center; justify-content: center; gap: 12px;
@@ -283,10 +316,7 @@
     .placeholder p { font-family: var(--mono); font-size: 11px; letter-spacing: .06em; line-height: 1.9; }
 
     /* ── Select toggle bar ───────────────────────────────────────────────── */
-    .sel-bar {
-      display: flex; align-items: center; gap: 8px;
-      margin-bottom: 12px; flex-wrap: wrap;
-    }
+    .sel-bar { display: flex; align-items: center; gap: 8px; margin-bottom: 12px; flex-wrap: wrap; }
     .toggle-sel-btn {
       font-family: var(--mono); font-size: 9px; font-weight: 600;
       letter-spacing: .12em; text-transform: uppercase; color: var(--accent);
@@ -295,15 +325,12 @@
       transition: background .15s; -webkit-tap-highlight-color: transparent;
     }
     .toggle-sel-btn:hover { background: var(--accent-dim); }
-    .sel-count-text {
-      margin-left: auto; font-family: var(--mono); font-size: 10px; color: var(--text-dim);
-    }
+    .sel-count-text { margin-left: auto; font-family: var(--mono); font-size: 10px; color: var(--text-dim); }
     .sel-count-text .sp { color: var(--green); font-weight: 600; }
 
-    /* ── Part card (compatibility / selection) ───────────────────────────── */
+    /* ── Part card ───────────────────────────────────────────────────────── */
     .part-card {
-      display: block;
-      background: var(--surface-2); border: 1.5px solid var(--border);
+      display: block; background: var(--surface-2); border: 1.5px solid var(--border);
       border-radius: var(--r-card); padding: 14px 14px 12px;
       margin-bottom: 10px; cursor: pointer;
       transition: border-color .15s, background .15s;
@@ -311,11 +338,11 @@
       -webkit-tap-highlight-color: transparent;
     }
     .part-card:has(input:checked) { border-color: var(--accent); background: rgba(0,212,255,.04); }
+    .part-card.status-fab    { border-color: var(--amber) !important; }
+    .part-card.status-caution{ border-color: var(--amber) !important; }
+    .part-card.status-incompat{ border-color: var(--red) !important; background: var(--red-dim) !important; pointer-events: none; opacity: .75; }
 
-    .pc-head {
-      display: flex; align-items: flex-start; justify-content: space-between; gap: 10px;
-      margin-bottom: 8px;
-    }
+    .pc-head { display: flex; align-items: flex-start; justify-content: space-between; gap: 10px; margin-bottom: 8px; }
     .pc-pills { display: flex; gap: 6px; flex-wrap: wrap; align-items: center; }
     .pill-brand {
       font-family: var(--mono); font-size: 9px; font-weight: 600;
@@ -328,16 +355,24 @@
       letter-spacing: .08em; color: var(--text-dim);
       border: 1px solid var(--border-lit); border-radius: 4px; padding: 3px 8px;
     }
+    .pill-status {
+      font-family: var(--mono); font-size: 8px; font-weight: 700;
+      letter-spacing: .08em; text-transform: uppercase;
+      border-radius: 4px; padding: 3px 8px;
+    }
+    .pill-status.confirmed   { background: rgba(0,255,136,.08); color: var(--green);  border: 1px solid rgba(0,255,136,.3); }
+    .pill-status.fab         { background: var(--amber-dim);    color: var(--amber);  border: 1px solid rgba(255,184,0,.3); }
+    .pill-status.caution     { background: var(--amber-dim);    color: var(--amber);  border: 1px solid rgba(255,184,0,.3); }
+    .pill-status.incompatible{ background: var(--red-dim);      color: var(--red);    border: 1px solid rgba(255,68,68,.3); }
     .pc-chk {
       width: 24px; height: 24px; min-width: 24px; flex-shrink: 0;
       accent-color: var(--accent); cursor: pointer; margin-top: 1px;
     }
-    .pc-pn {
-      font-family: var(--mono); font-size: 13px; font-weight: 600;
-      color: var(--text-bright); margin-bottom: 2px;
-    }
+    .pc-pn { font-family: var(--mono); font-size: 13px; font-weight: 600; color: var(--text-bright); margin-bottom: 2px; }
     .pc-ln { font-family: var(--sans); font-size: 12px; color: var(--text-dim); margin-bottom: 5px; }
     .pc-fit { font-family: var(--mono); font-size: 10px; color: var(--text-dim); margin-bottom: 10px; }
+    .pc-diag { font-family: var(--mono); font-size: 10px; color: var(--amber); margin-bottom: 8px; line-height: 1.6; }
+    .pc-diag.incompat { color: var(--red); }
     .pc-hr { border: none; border-top: 1px solid var(--border); margin: 0 0 10px; }
     .pc-price-row { display: flex; align-items: center; justify-content: space-between; }
     .pc-price-lbl { font-family: var(--mono); font-size: 10px; text-transform: uppercase; letter-spacing: .1em; color: var(--text-dim); }
@@ -349,17 +384,11 @@
       border-radius: var(--r-card); padding: 14px;
       margin-bottom: 10px; animation: up .18s ease both;
     }
-    .qi-top {
-      display: flex; align-items: flex-start; justify-content: space-between; gap: 10px;
-      margin-bottom: 8px;
-    }
+    .qi-top { display: flex; align-items: flex-start; justify-content: space-between; gap: 10px; margin-bottom: 8px; }
     .qi-pn { font-family: var(--mono); font-size: 12px; font-weight: 600; color: var(--text-bright); }
     .qi-brand { font-family: var(--sans); font-size: 11px; color: var(--text-dim); margin-top: 2px; }
     .qi-hr { border: none; border-top: 1px solid var(--border); margin: 10px 0; }
-    .qi-grid {
-      display: grid; grid-template-columns: 1fr 1fr 1fr;
-      gap: 8px; margin-bottom: 10px;
-    }
+    .qi-grid { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 8px; margin-bottom: 10px; }
     .qi-cell { display: flex; flex-direction: column; gap: 2px; }
     .qi-cell-lbl { font-family: var(--mono); font-size: 9px; text-transform: uppercase; letter-spacing: .1em; color: var(--text-dim); }
     .qi-cell-val { font-family: var(--mono); font-size: 13px; font-weight: 600; color: var(--accent); }
@@ -370,8 +399,7 @@
     /* ── Quote summary block ─────────────────────────────────────────────── */
     .q-summary {
       background: var(--surface-2); border: 1px solid var(--border);
-      border-top: 3px solid var(--green);
-      border-radius: var(--r-card); padding: 20px;
+      border-top: 3px solid var(--green); border-radius: var(--r-card); padding: 20px;
       animation: up .22s ease both;
     }
     .qs-row {
@@ -379,36 +407,18 @@
       font-family: var(--mono); font-size: 12px; color: var(--text-dim);
       padding: 5px 0; font-variant-numeric: tabular-nums;
     }
+    .qs-row.fab-row .qs-label { color: var(--amber); }
+    .qs-row.fab-row .qs-val   { color: var(--amber); }
     .qs-divider-thin   { border: none; border-top: 1px solid var(--border); margin: 8px 0; }
     .qs-divider-double { border: none; border-top: 3px double var(--green); margin: 12px 0; }
-    .qs-row.grand .qs-label {
-      font-weight: 700; font-size: 14px; letter-spacing: .1em;
-      text-transform: uppercase; color: var(--text-bright);
-    }
-    .qs-row.grand .qs-val {
-      font-weight: 700; font-size: 2rem; color: var(--green);
-      text-shadow: 0 0 22px var(--green-glow);
-    }
-    .qs-meta {
-      font-family: var(--mono); font-size: 9px; color: var(--text-dim);
-      margin-top: 12px; text-align: right; letter-spacing: .06em;
-    }
+    .qs-row.grand .qs-label { font-weight: 700; font-size: 14px; letter-spacing: .1em; text-transform: uppercase; color: var(--text-bright); }
+    .qs-row.grand .qs-val   { font-weight: 700; font-size: 2rem; color: var(--green); text-shadow: 0 0 22px var(--green-glow); }
+    .qs-meta { font-family: var(--mono); font-size: 9px; color: var(--text-dim); margin-top: 12px; text-align: right; letter-spacing: .06em; }
 
-    /* ── Status bar (inline, bottom of results card) ─────────────────────── */
-    .status-bar {
-      padding: 10px 16px; border-top: 1px solid var(--border);
-      background: var(--surface-2);
-      display: flex; align-items: center; gap: 8px;
-    }
-    .sb-status {
-      font-family: var(--mono); font-size: 11px; font-weight: 600;
-      letter-spacing: .08em; text-transform: uppercase; flex: 1;
-      display: flex; align-items: center; gap: 8px;
-    }
-    .sb-status::before {
-      content: ''; display: inline-block; flex-shrink: 0;
-      width: 7px; height: 7px; border-radius: 50%; background: var(--text-dim);
-    }
+    /* ── Status bar ──────────────────────────────────────────────────────── */
+    .status-bar { padding: 10px 16px; border-top: 1px solid var(--border); background: var(--surface-2); display: flex; align-items: center; gap: 8px; }
+    .sb-status { font-family: var(--mono); font-size: 11px; font-weight: 600; letter-spacing: .08em; text-transform: uppercase; flex: 1; display: flex; align-items: center; gap: 8px; }
+    .sb-status::before { content: ''; display: inline-block; flex-shrink: 0; width: 7px; height: 7px; border-radius: 50%; background: var(--text-dim); }
     .sb-status.ok::before    { background: var(--green); box-shadow: 0 0 7px var(--green); }
     .sb-status.error::before { background: var(--red);   box-shadow: 0 0 7px var(--red); }
     .sb-status.empty::before { background: var(--amber); }
@@ -418,23 +428,17 @@
     #sb-detail { font-family: var(--mono); font-size: 11px; color: var(--text-dim); flex: 1; }
     #sb-time   { font-family: var(--mono); font-size: 10px; color: var(--text-dim); opacity: .6; margin-left: auto; white-space: nowrap; }
 
-    /* ── State cards (error / empty / warning) ───────────────────────────── */
-    .state-card {
-      padding: 16px; border-radius: var(--r-card);
-      font-family: var(--mono); font-size: 11px; line-height: 1.9;
-    }
-    .state-card.error { border: 1px solid rgba(255,68,68,.3);  background: var(--red-dim);   color: var(--red);   }
-    .state-card.empty { border: 1px solid rgba(255,184,0,.25); background: var(--amber-dim); color: var(--amber); }
+    /* ── State cards ─────────────────────────────────────────────────────── */
+    .state-card { padding: 16px; border-radius: var(--r-card); font-family: var(--mono); font-size: 11px; line-height: 1.9; }
+    .state-card.error { border: 1px solid rgba(255,68,68,.3); background: var(--red-dim);   color: var(--red);   }
+    .state-card.empty { border: 1px solid rgba(255,184,0,.25);background: var(--amber-dim); color: var(--amber); }
     .sc-code { font-size: 10px; font-weight: 700; letter-spacing: .1em; text-transform: uppercase; margin-bottom: 4px; }
 
-    /* ── Sticky selection counter (mobile) ───────────────────────────────── */
+    /* ── Sticky selection counter ────────────────────────────────────────── */
     .sticky-sel {
-      position: fixed; bottom: 0; left: 0; right: 0; z-index: 150;
-      height: 52px;
-      padding: 0 20px;
-      padding-bottom: env(safe-area-inset-bottom);
-      background: var(--surface);
-      border-top: 1.5px solid var(--accent);
+      position: fixed; bottom: 0; left: 0; right: 0; z-index: 150; height: 52px;
+      padding: 0 20px; padding-bottom: env(safe-area-inset-bottom);
+      background: var(--surface); border-top: 1.5px solid var(--accent);
       display: none; align-items: center; justify-content: center;
       font-family: var(--mono); font-size: 12px; font-weight: 600;
       color: var(--text-dim); gap: 6px;
@@ -442,6 +446,107 @@
     .sticky-sel.show { display: flex; }
     .sticky-sel .sp { color: var(--green); font-weight: 700; }
     @media (min-width: 900px) { .sticky-sel { display: none !important; } }
+
+    /* ── Settings drawer ─────────────────────────────────────────────────── */
+    .drawer-overlay {
+      position: fixed; inset: 0; z-index: 400;
+      background: rgba(0,0,0,.6); backdrop-filter: blur(4px);
+      display: none;
+    }
+    .drawer-overlay.open { display: block; }
+    .drawer {
+      position: fixed; top: 0; right: 0; bottom: 0; z-index: 401;
+      width: min(400px, 100vw);
+      background: var(--surface); border-left: 1px solid var(--border-lit);
+      display: flex; flex-direction: column;
+      transform: translateX(100%); transition: transform .25s ease;
+    }
+    .drawer.open { transform: translateX(0); }
+    .drawer-hdr {
+      display: flex; align-items: center; justify-content: space-between;
+      padding: 18px 20px; border-bottom: 1px solid var(--border);
+      font-family: var(--mono); font-size: 11px; font-weight: 700;
+      letter-spacing: .14em; text-transform: uppercase; color: var(--accent);
+    }
+    .drawer-close {
+      background: transparent; border: none; cursor: pointer;
+      font-family: var(--mono); font-size: 16px; color: var(--text-dim);
+      padding: 4px 8px; transition: color .15s;
+    }
+    .drawer-close:hover { color: var(--text); }
+    .drawer-body { flex: 1; overflow-y: auto; padding: 20px; display: flex; flex-direction: column; gap: 14px; }
+    .drawer-field { display: flex; flex-direction: column; gap: 5px; }
+    .drawer-field label {
+      font-family: var(--mono); font-size: 10px; font-weight: 500;
+      letter-spacing: .15em; text-transform: uppercase; color: var(--text-dim);
+    }
+    .drawer-field input, .drawer-field select {
+      height: 44px; width: 100%; padding: 0 12px;
+      background: var(--bg); border: 1px solid var(--border-lit);
+      border-radius: var(--r-input); color: var(--text);
+      font-family: var(--mono); font-size: 13px;
+      outline: none; transition: border-color .15s;
+    }
+    .drawer-field input:focus, .drawer-field select:focus { border-color: var(--accent); }
+    .toggle-row { display: flex; align-items: center; justify-content: space-between; }
+    .toggle-row label { font-family: var(--mono); font-size: 10px; letter-spacing: .12em; text-transform: uppercase; color: var(--text-dim); }
+    .toggle-switch { position: relative; width: 44px; height: 24px; }
+    .toggle-switch input { opacity: 0; width: 0; height: 0; }
+    .toggle-slider {
+      position: absolute; inset: 0; cursor: pointer;
+      background: var(--border-lit); border-radius: 24px;
+      transition: background .2s;
+    }
+    .toggle-slider::before {
+      content: ''; position: absolute; width: 18px; height: 18px;
+      left: 3px; top: 3px; border-radius: 50%; background: var(--text-dim);
+      transition: transform .2s, background .2s;
+    }
+    .toggle-switch input:checked + .toggle-slider { background: rgba(0,255,136,.3); }
+    .toggle-switch input:checked + .toggle-slider::before { transform: translateX(20px); background: var(--green); }
+    .drawer-footer { padding: 16px 20px; border-top: 1px solid var(--border); }
+    .drawer-save-btn {
+      width: 100%; height: 46px; border: none; border-radius: var(--r-input);
+      background: var(--accent); color: var(--bg); cursor: pointer;
+      font-family: var(--mono); font-weight: 700; font-size: 11px;
+      letter-spacing: .14em; text-transform: uppercase;
+      transition: background .15s;
+    }
+    .drawer-save-btn:hover { background: #1adcff; }
+    .drawer-msg { font-family: var(--mono); font-size: 11px; margin-top: 8px; text-align: center; }
+
+    /* ── History modal ───────────────────────────────────────────────────── */
+    .modal-overlay {
+      position: fixed; inset: 0; z-index: 400;
+      background: rgba(0,0,0,.6); backdrop-filter: blur(4px);
+      display: none; align-items: center; justify-content: center; padding: 20px;
+    }
+    .modal-overlay.open { display: flex; }
+    .modal {
+      width: 100%; max-width: 560px; max-height: 80vh;
+      background: var(--surface); border: 1px solid var(--border-lit);
+      border-radius: 12px; display: flex; flex-direction: column; overflow: hidden;
+    }
+    .modal-hdr {
+      display: flex; align-items: center; justify-content: space-between;
+      padding: 16px 20px; border-bottom: 1px solid var(--border);
+      font-family: var(--mono); font-size: 11px; font-weight: 700;
+      letter-spacing: .14em; text-transform: uppercase; color: var(--accent);
+      flex-shrink: 0;
+    }
+    .modal-close { background: transparent; border: none; cursor: pointer; font-family: var(--mono); font-size: 16px; color: var(--text-dim); padding: 4px 8px; }
+    .modal-close:hover { color: var(--text); }
+    .modal-body { flex: 1; overflow-y: auto; padding: 16px; }
+    .hist-row {
+      display: grid; grid-template-columns: 80px 1fr auto;
+      gap: 8px; align-items: center;
+      padding: 10px 0; border-bottom: 1px solid var(--border);
+      font-family: var(--mono); font-size: 11px;
+    }
+    .hist-row:last-child { border-bottom: none; }
+    .hist-date { color: var(--text-dim); font-size: 10px; }
+    .hist-vehicle { color: var(--text); }
+    .hist-total { color: var(--green); font-weight: 700; }
 
     /* ── Footer ──────────────────────────────────────────────────────────── */
     footer {
@@ -452,7 +557,6 @@
       font-family: var(--mono); font-size: 11px; color: var(--text-dim); letter-spacing: .06em;
     }
 
-    /* ── Animation ───────────────────────────────────────────────────────── */
     @keyframes up {
       from { opacity: 0; transform: translateY(6px); }
       to   { opacity: 1; transform: translateY(0); }
@@ -461,24 +565,126 @@
 </head>
 <body>
 
-  <!-- ── Header ──────────────────────────────────────────────────────────── -->
+  <!-- ── Auth overlay ─────────────────────────────────────────────────────── -->
+  <div id="auth-overlay">
+    <!-- Screen: loading -->
+    <div id="screen-loading" class="auth-box" style="align-items:center;gap:16px;">
+      <div class="auth-logo">ApexFitment</div>
+      <div style="font-family:var(--mono);font-size:11px;color:var(--text-dim);">Initializing authentication…</div>
+    </div>
+
+    <!-- Screen: sign-in -->
+    <div id="screen-signin" class="auth-box" style="display:none;">
+      <div class="auth-logo">ApexFitment</div>
+      <div class="auth-tag">Deterministic Compatibility · Zero Guesswork</div>
+      <div class="auth-title">Sign In</div>
+      <div class="auth-error" id="signin-error"></div>
+      <div class="auth-field">
+        <label>Email</label>
+        <input id="signin-email" type="email" placeholder="shop@example.com" autocomplete="email" />
+      </div>
+      <div class="auth-field">
+        <label>Password</label>
+        <input id="signin-password" type="password" placeholder="••••••••" autocomplete="current-password" />
+      </div>
+      <button class="auth-btn primary" onclick="doSignIn(document.getElementById('signin-email').value.trim(), document.getElementById('signin-password').value)">SIGN IN</button>
+      <button class="auth-btn secondary" onclick="showScreen('register')">REQUEST ACCESS</button>
+      <div class="auth-switch">New shop? <a onclick="showScreen('register')">Request access</a></div>
+    </div>
+
+    <!-- Screen: register -->
+    <div id="screen-register" class="auth-box" style="display:none;">
+      <div class="auth-logo">ApexFitment</div>
+      <div class="auth-tag">B2B Shop Registration</div>
+      <div class="auth-title">Request Access</div>
+      <div class="auth-error" id="register-error"></div>
+      <div class="auth-field"><label>Email</label><input id="reg-email" type="email" placeholder="shop@example.com" /></div>
+      <div class="auth-field"><label>Password</label><input id="reg-password" type="password" placeholder="min 8 characters" /></div>
+      <div class="auth-field"><label>Shop Name</label><input id="reg-shop" type="text" placeholder="Apex Performance Houston" /></div>
+      <div class="auth-field"><label>Owner Name</label><input id="reg-owner" type="text" placeholder="Your full name" /></div>
+      <div class="auth-field"><label>City</label><input id="reg-city" type="text" placeholder="Houston" /></div>
+      <button class="auth-btn primary" onclick="doRegister()">SUBMIT REQUEST</button>
+      <div class="auth-switch">Already registered? <a onclick="showScreen('signin')">Sign in</a></div>
+    </div>
+
+    <!-- Screen: pending -->
+    <div id="screen-pending" class="auth-box" style="display:none;">
+      <div class="auth-logo">ApexFitment</div>
+      <div class="auth-tag" style="margin-bottom:20px;">Account Status</div>
+      <div class="auth-info" id="pending-msg">Your shop registration is pending approval.<br/>You will be notified within 24 hours.</div>
+      <button class="auth-btn secondary" style="margin-top:20px;" onclick="doSignOut()">SIGN OUT</button>
+    </div>
+  </div>
+
+  <!-- ── Settings drawer ──────────────────────────────────────────────────── -->
+  <div class="drawer-overlay" id="drawer-overlay" onclick="closeSettings()"></div>
+  <div class="drawer" id="settings-drawer">
+    <div class="drawer-hdr">
+      Shop Settings
+      <button class="drawer-close" onclick="closeSettings()">✕</button>
+    </div>
+    <div class="drawer-body">
+      <div class="drawer-field"><label>Shop Name</label><input id="s-shop-name" type="text" /></div>
+      <div class="drawer-field"><label>Owner Name</label><input id="s-owner-name" type="text" /></div>
+      <div class="drawer-field"><label>City</label><input id="s-city" type="text" /></div>
+      <div class="drawer-field"><label>State</label><input id="s-state" type="text" /></div>
+      <div class="drawer-field"><label>Labor Rate ($/hr)</label><input id="s-labor-rate" type="number" step="0.01" /></div>
+      <div class="drawer-field"><label>Fabrication Rate ($/hr)</label><input id="s-fab-rate" type="number" step="0.01" /></div>
+      <div class="toggle-row">
+        <label>Fabrication Capable</label>
+        <label class="toggle-switch">
+          <input type="checkbox" id="s-fab-capable" />
+          <span class="toggle-slider"></span>
+        </label>
+      </div>
+    </div>
+    <div class="drawer-footer">
+      <button class="drawer-save-btn" onclick="saveSettings()">SAVE SETTINGS</button>
+      <div class="drawer-msg" id="drawer-msg"></div>
+    </div>
+  </div>
+
+  <!-- ── History modal ────────────────────────────────────────────────────── -->
+  <div class="modal-overlay" id="history-modal" onclick="closeHistory(event)">
+    <div class="modal">
+      <div class="modal-hdr">
+        Quote History
+        <button class="modal-close" onclick="closeHistory()">✕</button>
+      </div>
+      <div class="modal-body" id="history-body">
+        <div style="font-family:var(--mono);font-size:11px;color:var(--text-dim);">Loading…</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ── Header ───────────────────────────────────────────────────────────── -->
   <header class="hdr">
     <div class="hdr-inner">
       <a class="logo" href="/">
         <div class="logo-icon">⬡</div>
         <div class="logo-copy">
           <span class="logo-name">ApexFitment</span>
-          <span class="logo-tag">Deterministic Compatibility · Zero Guesswork</span>
+          <span class="logo-shop-name" id="hdr-shop-name"></span>
         </div>
       </a>
-      <div class="sys-pill"><div class="sys-dot"></div>SYSTEM ONLINE</div>
+      <div class="user-menu" id="user-menu" style="display:none;">
+        <button class="user-btn" id="user-btn" onclick="toggleUserMenu()">
+          <div class="user-dot"></div>
+          <span id="user-btn-label">SHOP</span>
+        </button>
+        <div class="user-dropdown" id="user-dropdown">
+          <button class="dd-item" onclick="openSettings()">SETTINGS</button>
+          <button class="dd-item" onclick="openHistory()">QUOTE HISTORY</button>
+          <div class="dd-sep"></div>
+          <button class="dd-item danger" onclick="doSignOut()">SIGN OUT</button>
+        </div>
+      </div>
     </div>
   </header>
 
-  <!-- ── Page ────────────────────────────────────────────────────────────── -->
+  <!-- ── Page ─────────────────────────────────────────────────────────────── -->
   <main class="page">
 
-    <!-- ── Left: Form ──────────────────────────────────────────────────── -->
     <section class="card form-card">
       <div class="card-hdr">
         <div class="card-dot"></div>
@@ -486,9 +692,7 @@
         <span class="card-sub">/webhook · /quote</span>
       </div>
       <div class="form-body">
-
         <div class="form-grid">
-          <!-- Row 1: Year + Make -->
           <div class="field">
             <label for="f-year">Year</label>
             <input id="f-year" type="text" inputmode="numeric" placeholder="2019" value="2019" />
@@ -497,20 +701,14 @@
             <label for="f-make">Make</label>
             <input id="f-make" type="text" placeholder="Dodge" value="Dodge" />
           </div>
-
-          <!-- Row 2: Model -->
           <div class="field full">
             <label for="f-model">Model</label>
             <input id="f-model" type="text" placeholder="Challenger" value="Challenger" />
           </div>
-
-          <!-- Row 3: Submodel -->
           <div class="field full">
             <label for="f-submodel">Submodel / Payload &nbsp;<span style="font-weight:400;color:var(--text-dim)">(opt)</span></label>
             <input id="f-submodel" type="text" placeholder="e.g. SRT Hellcat, 1500HD" value="SRT Hellcat" />
           </div>
-
-          <!-- Row 4: Cab + Bed -->
           <div class="field">
             <label for="f-cab">Cab Type</label>
             <input id="f-cab" type="text" placeholder="optional" value="" />
@@ -519,14 +717,10 @@
             <label for="f-bed">Bed Length</label>
             <input id="f-bed" type="text" placeholder="optional" value="" />
           </div>
-
-          <!-- Row 5: Engine -->
           <div class="field full">
             <label for="f-engine">Engine Displacement</label>
             <input id="f-engine" type="text" placeholder="e.g. 6.2L" value="6.2L" />
           </div>
-
-          <!-- Row 6: Product type -->
           <div class="field full">
             <label for="f-type">Product Type Filter</label>
             <select id="f-type">
@@ -541,34 +735,21 @@
           </div>
         </div>
 
-        <!-- ── Buttons ── -->
         <div class="btn-group">
-          <button class="btn btn-run" id="btn-run" onclick="runCompatibility()">
-            <div class="btn-spinner"></div>
-            <span class="btn-label">▶ Run Compatibility Query</span>
-          </button>
-          <button class="btn btn-quote" id="btn-quote" onclick="runQuote()">
-            <div class="btn-spinner"></div>
-            <span class="btn-label">⚡ Generate Quote</span>
-          </button>
-          <button class="btn btn-pdf" id="btn-pdf" onclick="exportPdf()">
-            <div class="btn-spinner"></div>
-            <span class="btn-label">↓ Export PDF</span>
-          </button>
+          <button class="btn btn-run"   id="btn-run"   onclick="runCompatibility()"><div class="btn-spinner"></div><span class="btn-label">▶ Run Compatibility Query</span></button>
+          <button class="btn btn-quote" id="btn-quote" onclick="runQuote()">        <div class="btn-spinner"></div><span class="btn-label">⚡ Generate Quote</span></button>
+          <button class="btn btn-pdf"   id="btn-pdf"   onclick="exportPdf()">       <div class="btn-spinner"></div><span class="btn-label">↓ Export Blueprint PDF</span></button>
         </div>
 
-        <!-- ── Query preview (collapsible) ── -->
         <div class="qp-wrap">
           <details id="qp-details">
             <summary>View Query Params</summary>
             <div class="query-preview" id="query-preview"></div>
           </details>
         </div>
-
       </div>
     </section>
 
-    <!-- ── Right: Results ──────────────────────────────────────────────── -->
     <section class="card results-card">
       <div class="card-hdr">
         <div class="card-dot"></div>
@@ -592,7 +773,6 @@
 
   </main>
 
-  <!-- ── Sticky counter (mobile only) ────────────────────────────────────── -->
   <div class="sticky-sel" id="sticky-sel">
     <span id="sticky-sel-text">0 of 0 selected · <span class="sp">$0.00</span> est.</span>
   </div>
@@ -602,364 +782,598 @@
   </footer>
 
 <script>
-  /* ── Utilities ──────────────────────────────────────────────────────────── */
-  function ts() { return new Date().toLocaleTimeString('en-US', { hour12: false }); }
+/* ── Auth state ──────────────────────────────────────────────────────────── */
+let _clerkReady = false;
+let _shop       = null;
 
-  function fmt(n) {
-    return '$' + Number(n).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+window.addEventListener('load', () => {
+  const waitForClerk = setInterval(() => {
+    if (window.Clerk) {
+      clearInterval(waitForClerk);
+      initClerk();
+    }
+  }, 50);
+  setTimeout(() => clearInterval(waitForClerk), 10000);
+});
+
+async function initClerk() {
+  await window.Clerk.load();
+  _clerkReady = true;
+
+  if (!window.Clerk.user) {
+    showScreen('signin');
+    return;
   }
 
-  function escHtml(s) {
-    if (s == null) return '';
-    return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
-  }
-
-  /* ── Status bar ─────────────────────────────────────────────────────────── */
-  function setStatus(cls, label, detail) {
-    const el = document.getElementById('sb-status');
-    el.className = 'sb-status ' + (cls || '');
-    el.textContent = label;
-    document.getElementById('sb-detail').textContent = detail || '';
-    document.getElementById('sb-time').textContent = ts();
-  }
-
-  /* ── Loading ────────────────────────────────────────────────────────────── */
-  function setLoading(btnId, on) {
-    const btn = document.getElementById(btnId);
-    if (!btn) return;
-    btn.disabled = on;
-    if (on) btn.classList.add('loading'); else btn.classList.remove('loading');
-  }
-
-  function setAllLoading(on) {
-    setLoading('btn-run', on);
-    setLoading('btn-quote', on);
-    setLoading('btn-pdf', on);
-  }
-
-  /* ── Payload collection ─────────────────────────────────────────────────── */
-  function collectPayload() {
-    const year    = document.getElementById('f-year').value.trim();
-    const make    = document.getElementById('f-make').value.trim();
-    const model   = document.getElementById('f-model').value.trim();
-    const submodel= document.getElementById('f-submodel').value.trim();
-    const cab     = document.getElementById('f-cab').value.trim();
-    const bed     = document.getElementById('f-bed').value.trim();
-    const engine  = document.getElementById('f-engine').value.trim();
-    const type    = document.getElementById('f-type').value.trim();
-
-    const payload = {
-      vehicle_chassis: {
-        year:  year ? Number(year) : undefined,
-        make:  make  || undefined,
-        model: model || undefined,
-        ...(submodel ? { submodel_payload_chassis: submodel } : {}),
-        ...(cab      ? { cab_type: cab }                      : {}),
-        ...(bed      ? { bed_length: bed }                    : {}),
-      },
-      powertrain: {
-        ...(engine ? { engine_displacement_liters: engine } : {}),
-      },
-      product_type_filter: type || null,
-    };
-
-    // Update query preview
-    const qp = document.getElementById('query-preview');
-    const pairs = [
-      ['year',                     year     || null],
-      ['make',                     make     || null],
-      ['model',                    model    || null],
-      ['submodel_payload_chassis', submodel || null],
-      ['cab_type',                 cab      || null],
-      ['bed_length',               bed      || null],
-      ['engine_displacement',      engine   || null],
-      ['product_type_filter',      type     || null],
-    ];
-    qp.innerHTML = pairs.map(([k, v]) =>
-      `<div class="qp-row"><span class="qp-key">${k}</span><span class="qp-val${v === null ? ' any' : ''}">${v === null ? '(any)' : escHtml(String(v))}</span></div>`
-    ).join('');
-
-    return payload;
-  }
-
-  /* ── Selection helpers ──────────────────────────────────────────────────── */
-  function updateSelectionCounter() {
-    const checks = document.querySelectorAll('.part-chk');
-    if (!checks.length) {
-      document.getElementById('sticky-sel').classList.remove('show');
+  // Signed in — load shop profile
+  try {
+    const r = await fetch('/auth/me', { headers: await getAuthHeaders() });
+    if (r.status === 403) {
+      const data = await r.json();
+      document.getElementById('pending-msg').textContent =
+        data.detail || 'Your shop is pending approval. We will notify you within 24h.';
+      showScreen('pending');
       return;
     }
-    let selected = 0, price = 0;
-    const total = checks.length;
-    checks.forEach(c => { if (c.checked) { selected++; price += parseFloat(c.dataset.price) || 0; } });
-
-    // Inline counter (inside results body)
-    const inline = document.getElementById('sel-counter');
-    if (inline) inline.innerHTML =
-      `${selected} of ${total} &nbsp;·&nbsp; <span class="sp">${fmt(price)}</span>`;
-
-    // Sticky bar (mobile)
-    const sticky = document.getElementById('sticky-sel');
-    sticky.classList.add('show');
-    document.getElementById('sticky-sel-text').innerHTML =
-      `${selected} of ${total} selected &nbsp;·&nbsp; <span class="sp">${fmt(price)}</span> est.`;
-
-    // Toggle button label
-    const btn = document.querySelector('.toggle-sel-btn');
-    if (btn) btn.textContent = selected === total ? 'DESELECT ALL' : 'SELECT ALL';
+    if (!r.ok) { showScreen('signin'); return; }
+    const data = await r.json();
+    _shop = data.shop;
+    activateApp();
+  } catch (_) {
+    showScreen('signin');
   }
+}
 
-  function toggleSelectAll() {
-    const checks = document.querySelectorAll('.part-chk');
-    const allChecked = Array.from(checks).every(c => c.checked);
-    checks.forEach(c => { c.checked = !allChecked; });
-    updateSelectionCounter();
+function showScreen(name) {
+  ['loading','signin','register','pending'].forEach(s => {
+    document.getElementById('screen-' + s).style.display = 'none';
+  });
+  document.getElementById('screen-' + name).style.display = 'flex';
+  document.getElementById('auth-overlay').classList.remove('hidden');
+}
+
+function activateApp() {
+  document.getElementById('auth-overlay').classList.add('hidden');
+  const menu = document.getElementById('user-menu');
+  menu.style.display = 'flex';
+  if (_shop) {
+    document.getElementById('hdr-shop-name').textContent = _shop.shop_name || '';
+    document.getElementById('user-btn-label').textContent = (_shop.shop_name || 'SHOP').toUpperCase().slice(0, 14);
+    populateSettings(_shop);
   }
+}
 
-  function getSelectedParts() {
-    return Array.from(document.querySelectorAll('.part-chk:checked')).map(c => c.dataset.part);
+/* ── Auth helpers ────────────────────────────────────────────────────────── */
+async function ensureClerkLoaded() {
+  if (!window.Clerk || !window.Clerk.client) {
+    await window.Clerk.load();
   }
+}
 
-  /* ── Compatibility query ────────────────────────────────────────────────── */
-  async function runCompatibility() {
-    setAllLoading(true);
-    document.getElementById('sticky-sel').classList.remove('show');
-    document.getElementById('btn-pdf').classList.remove('pulse');
-    const payload = collectPayload();
-    setStatus('', 'QUERYING', 'Fitment matrix lookup…');
-    const t0 = performance.now();
-    try {
-      const res  = await fetch('/webhook/sms', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(payload) });
-      const data = await res.json();
-      renderCompatibility(res.status, data, (performance.now() - t0).toFixed(0));
-    } catch (e) {
-      renderNetworkError(e.message, (performance.now() - t0).toFixed(0));
+async function getAuthHeaders() {
+  await ensureClerkLoaded();
+  const token = await window.Clerk.session?.getToken();
+  return { 'Authorization': `Bearer ${token}`, 'Content-Type': 'application/json' };
+}
+
+function showAuthError(msg) {
+  const errEl = document.getElementById('signin-error');
+  errEl.textContent = msg;
+  errEl.style.display = 'block';
+}
+
+async function doSignIn(email, password) {
+  document.getElementById('signin-error').style.display = 'none';
+  try {
+    console.log('[Auth] Attempting sign in for:', email);
+    await window.Clerk.load();
+
+    const signIn = await window.Clerk.client.signIn.create({
+      identifier: email,
+      password: password,
+    });
+
+    console.log('[Auth] Clerk result:', signIn);
+
+    if (signIn.status === 'complete') {
+      await window.Clerk.setActive({ session: signIn.createdSessionId });
+      location.reload();
+    } else {
+      showAuthError('Sign in failed. Status: ' + signIn.status);
     }
-    setAllLoading(false);
+  } catch (err) {
+    console.log('[Auth] Error:', err);
+    showAuthError(err.errors?.[0]?.message || err.message || 'Sign in failed');
   }
+}
 
-  /* ── Quote ──────────────────────────────────────────────────────────────── */
-  async function runQuote() {
-    const checksExist   = document.querySelectorAll('.part-chk').length > 0;
-    const selectedParts = getSelectedParts();
-    if (checksExist && selectedParts.length === 0) {
-      hidePlaceholder();
-      document.getElementById('results-body').innerHTML =
-        stateCard('empty', 'NO_PARTS_SELECTED', 'Select at least one part before generating a quote.');
-      setStatus('empty', 'NO PARTS', 'Check at least one part in the list');
+async function doRegister() {
+  const email     = document.getElementById('reg-email').value.trim();
+  const password  = document.getElementById('reg-password').value;
+  const shopName  = document.getElementById('reg-shop').value.trim();
+  const ownerName = document.getElementById('reg-owner').value.trim();
+  const city      = document.getElementById('reg-city').value.trim();
+  const errEl     = document.getElementById('register-error');
+  errEl.style.display = 'none';
+  try {
+    await ensureClerkLoaded();
+    const result = await window.Clerk.client.signUp.create({ emailAddress: email, password });
+    if (result.status === 'complete') {
+      await window.Clerk.setActive({ session: result.createdSessionId });
+    }
+    // Post shop registration to backend
+    const hdrs = await getAuthHeaders();
+    await fetch('/auth/register', {
+      method: 'POST', headers: hdrs,
+      body: JSON.stringify({ shop_name: shopName, owner_name: ownerName, email, city, state: 'TX' }),
+    });
+    showScreen('pending');
+  } catch (e) {
+    errEl.textContent = e.errors?.[0]?.message || e.message || 'Registration failed.';
+    errEl.style.display = 'block';
+  }
+}
+
+async function doSignOut() {
+  await ensureClerkLoaded();
+  await window.Clerk?.signOut();
+  _shop = null;
+  showScreen('signin');
+  document.getElementById('user-menu').style.display = 'none';
+  document.getElementById('hdr-shop-name').textContent = '';
+}
+
+/* ── User menu ───────────────────────────────────────────────────────────── */
+function toggleUserMenu() {
+  document.getElementById('user-dropdown').classList.toggle('open');
+}
+document.addEventListener('click', (e) => {
+  const menu = document.getElementById('user-menu');
+  if (menu && !menu.contains(e.target)) {
+    document.getElementById('user-dropdown').classList.remove('open');
+  }
+});
+
+/* ── Settings drawer ─────────────────────────────────────────────────────── */
+function openSettings() {
+  document.getElementById('user-dropdown').classList.remove('open');
+  document.getElementById('drawer-overlay').classList.add('open');
+  document.getElementById('settings-drawer').classList.add('open');
+}
+function closeSettings() {
+  document.getElementById('drawer-overlay').classList.remove('open');
+  document.getElementById('settings-drawer').classList.remove('open');
+}
+function populateSettings(shop) {
+  document.getElementById('s-shop-name').value  = shop.shop_name  || '';
+  document.getElementById('s-owner-name').value = shop.owner_name || '';
+  document.getElementById('s-city').value        = shop.city       || '';
+  document.getElementById('s-state').value       = shop.state      || 'TX';
+  document.getElementById('s-labor-rate').value  = shop.labor_rate || 125;
+  document.getElementById('s-fab-rate').value    = shop.labor_rate_fabrication || 250;
+  document.getElementById('s-fab-capable').checked = !!shop.fabrication_capable;
+}
+async function saveSettings() {
+  const msg = document.getElementById('drawer-msg');
+  msg.style.color = 'var(--text-dim)'; msg.textContent = 'Saving…';
+  try {
+    const hdrs = await getAuthHeaders();
+    const r = await fetch('/shop/settings', {
+      method: 'PUT', headers: hdrs,
+      body: JSON.stringify({
+        shop_name:              document.getElementById('s-shop-name').value,
+        owner_name:             document.getElementById('s-owner-name').value,
+        city:                   document.getElementById('s-city').value,
+        state:                  document.getElementById('s-state').value,
+        labor_rate:             parseFloat(document.getElementById('s-labor-rate').value),
+        labor_rate_fabrication: parseFloat(document.getElementById('s-fab-rate').value),
+        fabrication_capable:    document.getElementById('s-fab-capable').checked,
+      }),
+    });
+    const data = await r.json();
+    if (!r.ok) throw new Error(data.detail || 'Save failed');
+    _shop = data.shop;
+    document.getElementById('hdr-shop-name').textContent  = _shop.shop_name || '';
+    document.getElementById('user-btn-label').textContent = (_shop.shop_name || 'SHOP').toUpperCase().slice(0, 14);
+    msg.style.color = 'var(--green)'; msg.textContent = 'Saved!';
+    setTimeout(() => { msg.textContent = ''; }, 2500);
+  } catch (e) {
+    msg.style.color = 'var(--red)'; msg.textContent = e.message;
+  }
+}
+
+/* ── History modal ───────────────────────────────────────────────────────── */
+async function openHistory() {
+  document.getElementById('user-dropdown').classList.remove('open');
+  document.getElementById('history-modal').classList.add('open');
+  const body = document.getElementById('history-body');
+  body.innerHTML = '<div style="font-family:var(--mono);font-size:11px;color:var(--text-dim);">Loading…</div>';
+  try {
+    const hdrs = await getAuthHeaders();
+    const r    = await fetch('/shop/history', { headers: hdrs });
+    const data = await r.json();
+    if (!r.ok) throw new Error(data.detail || 'Failed to load history');
+    if (!data.quotes || data.quotes.length === 0) {
+      body.innerHTML = '<div style="font-family:var(--mono);font-size:11px;color:var(--text-dim);">No quotes yet.</div>';
       return;
     }
-    setAllLoading(true);
-    const payload = collectPayload();
-    if (selectedParts.length > 0) payload.selected_part_numbers = selectedParts;
-    setStatus('', 'QUOTING', 'Computing parts + labor estimate…');
-    const t0 = performance.now();
-    try {
-      const res  = await fetch('/quote', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(payload) });
-      const data = await res.json();
-      renderQuote(res.status, data, (performance.now() - t0).toFixed(0));
-    } catch (e) {
-      renderNetworkError(e.message, (performance.now() - t0).toFixed(0));
-    }
-    setAllLoading(false);
+    body.innerHTML = data.quotes.map(q => `
+      <div class="hist-row">
+        <span class="hist-date">${q.created_at ? q.created_at.slice(0,10) : '—'}</span>
+        <span class="hist-vehicle">${escHtml(String(q.vehicle_year || ''))} ${escHtml(q.vehicle_make || '')} ${escHtml(q.vehicle_model || '')}${q.vehicle_engine ? ' · ' + escHtml(q.vehicle_engine) : ''}</span>
+        <span class="hist-total">${fmt(q.grand_total || 0)}</span>
+      </div>`).join('');
+  } catch (e) {
+    body.innerHTML = `<div style="font-family:var(--mono);font-size:11px;color:var(--red);">${escHtml(e.message)}</div>`;
   }
-
-  /* ── Export PDF ─────────────────────────────────────────────────────────── */
-  async function exportPdf() {
-    const checksExist   = document.querySelectorAll('.part-chk').length > 0;
-    const selectedParts = getSelectedParts();
-    if (checksExist && selectedParts.length === 0) {
-      hidePlaceholder();
-      document.getElementById('results-body').innerHTML =
-        stateCard('empty', 'NO_PARTS_SELECTED', 'Select at least one part before generating a quote.');
-      setStatus('empty', 'NO PARTS', 'Check at least one part in the list');
-      return;
-    }
-    setAllLoading(true);
-    document.getElementById('btn-pdf').classList.remove('pulse');
-    const payload = collectPayload();
-    if (selectedParts.length > 0) payload.selected_part_numbers = selectedParts;
-    setStatus('', 'GENERATING PDF', 'Building quote document…');
-    const t0 = performance.now();
-    try {
-      const res = await fetch('/export-pdf', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(payload) });
-      if (!res.ok) {
-        const data = await res.json().catch(() => ({}));
-        renderNetworkError((data.error || data.status || `HTTP ${res.status}`), (performance.now() - t0).toFixed(0));
-      } else {
-        const blob  = await res.blob();
-        const url   = URL.createObjectURL(blob);
-        const a     = document.createElement('a');
-        const cd    = res.headers.get('Content-Disposition') || '';
-        const match = cd.match(/filename="([^"]+)"/);
-        a.download = match ? match[1] : 'ApexFitment-Quote.pdf';
-        a.href = url;
-        document.body.appendChild(a);
-        a.click();
-        a.remove();
-        URL.revokeObjectURL(url);
-        setStatus('ok', 'PDF READY', `Downloaded · ${(performance.now() - t0).toFixed(0)}ms`);
-      }
-    } catch (e) {
-      renderNetworkError(e.message, (performance.now() - t0).toFixed(0));
-    }
-    setAllLoading(false);
+}
+function closeHistory(e) {
+  if (!e || e.target === document.getElementById('history-modal') || e.type !== 'click' || !e.target.closest('.modal')) {
+    document.getElementById('history-modal').classList.remove('open');
   }
+}
 
-  /* ── Render: compatibility → selectable part cards ──────────────────────── */
-  function renderCompatibility(status, data, elapsed) {
-    const body = document.getElementById('results-body');
+/* ── Utilities ───────────────────────────────────────────────────────────── */
+function ts()  { return new Date().toLocaleTimeString('en-US', { hour12: false }); }
+function fmt(n){ return '$' + Number(n).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 }); }
+function escHtml(s) {
+  if (s == null) return '';
+  return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+}
+
+/* ── Status bar ──────────────────────────────────────────────────────────── */
+function setStatus(cls, label, detail) {
+  const el = document.getElementById('sb-status');
+  el.className = 'sb-status ' + (cls || '');
+  el.textContent = label;
+  document.getElementById('sb-detail').textContent = detail || '';
+  document.getElementById('sb-time').textContent   = ts();
+}
+
+/* ── Loading ─────────────────────────────────────────────────────────────── */
+function setLoading(btnId, on) {
+  const btn = document.getElementById(btnId);
+  if (!btn) return;
+  btn.disabled = on;
+  if (on) btn.classList.add('loading'); else btn.classList.remove('loading');
+}
+function setAllLoading(on) {
+  setLoading('btn-run', on); setLoading('btn-quote', on); setLoading('btn-pdf', on);
+}
+
+/* ── Payload collection ──────────────────────────────────────────────────── */
+function collectPayload() {
+  const year    = document.getElementById('f-year').value.trim();
+  const make    = document.getElementById('f-make').value.trim();
+  const model   = document.getElementById('f-model').value.trim();
+  const submodel= document.getElementById('f-submodel').value.trim();
+  const cab     = document.getElementById('f-cab').value.trim();
+  const bed     = document.getElementById('f-bed').value.trim();
+  const engine  = document.getElementById('f-engine').value.trim();
+  const type    = document.getElementById('f-type').value.trim();
+
+  const payload = {
+    vehicle_chassis: {
+      year:  year ? Number(year) : undefined,
+      make:  make  || undefined,
+      model: model || undefined,
+      ...(submodel ? { submodel_payload_chassis: submodel } : {}),
+      ...(cab      ? { cab_type: cab }                      : {}),
+      ...(bed      ? { bed_length: bed }                    : {}),
+    },
+    powertrain: { ...(engine ? { engine_displacement_liters: engine } : {}) },
+    product_type_filter: type || null,
+  };
+
+  const pairs = [
+    ['year', year || null], ['make', make || null], ['model', model || null],
+    ['submodel_payload_chassis', submodel || null], ['cab_type', cab || null],
+    ['bed_length', bed || null], ['engine_displacement', engine || null],
+    ['product_type_filter', type || null],
+  ];
+  document.getElementById('query-preview').innerHTML = pairs.map(([k, v]) =>
+    `<div class="qp-row"><span class="qp-key">${k}</span><span class="qp-val${v === null ? ' any' : ''}">${v === null ? '(any)' : escHtml(String(v))}</span></div>`
+  ).join('');
+
+  return payload;
+}
+
+/* ── Selection helpers ───────────────────────────────────────────────────── */
+function updateSelectionCounter() {
+  const checks = document.querySelectorAll('.part-chk');
+  if (!checks.length) { document.getElementById('sticky-sel').classList.remove('show'); return; }
+  let selected = 0, price = 0;
+  const total = checks.length;
+  checks.forEach(c => { if (c.checked) { selected++; price += parseFloat(c.dataset.price) || 0; } });
+  const inline = document.getElementById('sel-counter');
+  if (inline) inline.innerHTML = `${selected} of ${total} &nbsp;·&nbsp; <span class="sp">${fmt(price)}</span>`;
+  const sticky = document.getElementById('sticky-sel');
+  sticky.classList.add('show');
+  document.getElementById('sticky-sel-text').innerHTML = `${selected} of ${total} selected &nbsp;·&nbsp; <span class="sp">${fmt(price)}</span> est.`;
+  const btn = document.querySelector('.toggle-sel-btn');
+  if (btn) btn.textContent = selected === total ? 'DESELECT ALL' : 'SELECT ALL';
+}
+function toggleSelectAll() {
+  const checks    = document.querySelectorAll('.part-chk');
+  const allChecked = Array.from(checks).every(c => c.checked);
+  checks.forEach(c => { c.checked = !allChecked; });
+  updateSelectionCounter();
+}
+function getSelectedParts() {
+  return Array.from(document.querySelectorAll('.part-chk:checked')).map(c => c.dataset.part);
+}
+
+/* ── Compatibility query ─────────────────────────────────────────────────── */
+async function runCompatibility() {
+  setAllLoading(true);
+  document.getElementById('sticky-sel').classList.remove('show');
+  document.getElementById('btn-pdf').classList.remove('pulse');
+  const payload = collectPayload();
+  setStatus('', 'QUERYING', 'Fitment matrix lookup…');
+  const t0 = performance.now();
+  try {
+    const hdrs = await getAuthHeaders();
+    const res  = await fetch('/webhook/sms', { method: 'POST', headers: hdrs, body: JSON.stringify(payload) });
+    const data = await res.json();
+    renderCompatibility(res.status, data, (performance.now() - t0).toFixed(0));
+  } catch (e) { renderNetworkError(e.message, (performance.now() - t0).toFixed(0)); }
+  setAllLoading(false);
+}
+
+/* ── Quote ───────────────────────────────────────────────────────────────── */
+async function runQuote() {
+  const checksExist   = document.querySelectorAll('.part-chk').length > 0;
+  const selectedParts = getSelectedParts();
+  if (checksExist && selectedParts.length === 0) {
     hidePlaceholder();
-    document.getElementById('sticky-sel').classList.remove('show');
+    document.getElementById('results-body').innerHTML = stateCard('empty', 'NO_PARTS_SELECTED', 'Select at least one part before generating a quote.');
+    setStatus('empty', 'NO PARTS', 'Check at least one part in the list');
+    return;
+  }
+  setAllLoading(true);
+  const payload = collectPayload();
+  if (selectedParts.length > 0) payload.selected_part_numbers = selectedParts;
+  setStatus('', 'QUOTING', 'Computing parts + labor estimate…');
+  const t0 = performance.now();
+  try {
+    const hdrs = await getAuthHeaders();
+    const res  = await fetch('/quote', { method: 'POST', headers: hdrs, body: JSON.stringify(payload) });
+    const data = await res.json();
+    renderQuote(res.status, data, (performance.now() - t0).toFixed(0));
+  } catch (e) { renderNetworkError(e.message, (performance.now() - t0).toFixed(0)); }
+  setAllLoading(false);
+}
 
-    if (status >= 500) {
-      setStatus('error', 'ENGINE ERROR', `${data.error} · ${elapsed}ms`);
-      document.getElementById('result-count').textContent = 'ERROR';
-      body.innerHTML = stateCard('error', data.error, data.detail); return;
+/* ── Export PDF ──────────────────────────────────────────────────────────── */
+async function exportPdf() {
+  const checksExist   = document.querySelectorAll('.part-chk').length > 0;
+  const selectedParts = getSelectedParts();
+  if (checksExist && selectedParts.length === 0) {
+    hidePlaceholder();
+    document.getElementById('results-body').innerHTML = stateCard('empty', 'NO_PARTS_SELECTED', 'Select at least one part before exporting.');
+    setStatus('empty', 'NO PARTS', 'Check at least one part in the list');
+    return;
+  }
+  setAllLoading(true);
+  document.getElementById('btn-pdf').classList.remove('pulse');
+  const payload = collectPayload();
+  if (selectedParts.length > 0) payload.selected_part_numbers = selectedParts;
+  setStatus('', 'GENERATING PDF', 'Building engineering blueprint…');
+  const t0 = performance.now();
+  try {
+    const hdrs = await getAuthHeaders();
+    const res  = await fetch('/export-pdf', { method: 'POST', headers: hdrs, body: JSON.stringify(payload) });
+    if (!res.ok) {
+      const data = await res.json().catch(() => ({}));
+      renderNetworkError((data.error || data.status || `HTTP ${res.status}`), (performance.now() - t0).toFixed(0));
+    } else {
+      const blob  = await res.blob();
+      const url   = URL.createObjectURL(blob);
+      const a     = document.createElement('a');
+      const cd    = res.headers.get('Content-Disposition') || '';
+      const match = cd.match(/filename="([^"]+)"/);
+      a.download = match ? match[1] : 'ApexFitment-Blueprint.pdf';
+      a.href = url; document.body.appendChild(a); a.click(); a.remove();
+      URL.revokeObjectURL(url);
+      setStatus('ok', 'BLUEPRINT READY', `Downloaded · ${(performance.now() - t0).toFixed(0)}ms`);
     }
-    if (status === 400) {
-      setStatus('error', 'INVALID PAYLOAD', `${data.error} · ${elapsed}ms`);
-      document.getElementById('result-count').textContent = 'REJECTED';
-      body.innerHTML = stateCard('error', data.error, data.detail); return;
-    }
-    if (status === 404 || data.status === 'NO_MATCH') {
-      setStatus('empty', 'NO MATCH', `0 records · ${elapsed}ms`);
-      document.getElementById('result-count').textContent = '0 matches';
-      body.innerHTML = stateCard('empty', 'NO_MATCH', data.message); return;
-    }
+  } catch (e) { renderNetworkError(e.message, (performance.now() - t0).toFixed(0)); }
+  setAllLoading(false);
+}
 
-    const results = data.results || [];
-    setStatus('ok', 'MATCH FOUND', `${results.length} record${results.length !== 1 ? 's' : ''} · ${elapsed}ms`);
-    document.getElementById('result-count').textContent = `${results.length} match${results.length !== 1 ? 'es' : ''}`;
-    document.getElementById('btn-pdf').classList.add('pulse');
+/* ── fitment_status helpers ──────────────────────────────────────────────── */
+function fitmentStatusClass(status) {
+  if (status === 'FABRICATION_REQUIRED') return 'fab';
+  if (status === 'CAUTION')              return 'caution';
+  if (status === 'INCOMPATIBLE')         return 'incompatible';
+  return 'confirmed';
+}
+function fitmentCardClass(status) {
+  if (status === 'FABRICATION_REQUIRED') return 'status-fab';
+  if (status === 'CAUTION')              return 'status-caution';
+  if (status === 'INCOMPATIBLE')         return 'status-incompat';
+  return '';
+}
+function fitmentPillLabel(status, label) {
+  if (!status || status === 'CONFIRMED') return '';
+  return `<span class="pill-status ${fitmentStatusClass(status)}">${escHtml(label || status)}</span>`;
+}
 
-    const cards = results.map((r, i) => `
-      <label class="part-card">
+/* ── Render: compatibility ───────────────────────────────────────────────── */
+function renderCompatibility(status, data, elapsed) {
+  const body = document.getElementById('results-body');
+  hidePlaceholder();
+  document.getElementById('sticky-sel').classList.remove('show');
+
+  if (status >= 500) {
+    setStatus('error', 'ENGINE ERROR', `${data.error} · ${elapsed}ms`);
+    document.getElementById('result-count').textContent = 'ERROR';
+    body.innerHTML = stateCard('error', data.error, data.detail); return;
+  }
+  if (status === 400) {
+    setStatus('error', 'INVALID PAYLOAD', `${data.error} · ${elapsed}ms`);
+    document.getElementById('result-count').textContent = 'REJECTED';
+    body.innerHTML = stateCard('error', data.error, data.detail); return;
+  }
+  if (status === 404 || data.status === 'NO_MATCH') {
+    setStatus('empty', 'NO MATCH', `0 records · ${elapsed}ms`);
+    document.getElementById('result-count').textContent = '0 matches';
+    body.innerHTML = stateCard('empty', 'NO_MATCH', data.message); return;
+  }
+
+  const results = data.results || [];
+  setStatus('ok', 'MATCH FOUND', `${results.length} record${results.length !== 1 ? 's' : ''} · ${elapsed}ms`);
+  document.getElementById('result-count').textContent = `${results.length} match${results.length !== 1 ? 'es' : ''}`;
+  document.getElementById('btn-pdf').classList.add('pulse');
+
+  const cards = results.map((r, i) => {
+    const isIncompat = r.fitment_status === 'INCOMPATIBLE';
+    const cardCls    = fitmentCardClass(r.fitment_status);
+    const pillHtml   = fitmentPillLabel(r.fitment_status, r.fitment_label);
+    const diagHtml   = r.diagnostics
+      ? `<div class="pc-diag${isIncompat ? ' incompat' : ''}">${escHtml(r.diagnostics)}</div>`
+      : '';
+    const chkHtml    = isIncompat
+      ? `<input type="checkbox" class="part-chk pc-chk" data-part="${escHtml(r.part_number)}" data-price="${r.base_price_usd}" disabled>`
+      : `<input type="checkbox" id="chk-${i}" class="part-chk pc-chk" data-part="${escHtml(r.part_number)}" data-price="${r.base_price_usd}" checked onchange="updateSelectionCounter()">`;
+
+    return `
+      <label class="part-card ${cardCls}">
         <div class="pc-head">
           <div class="pc-pills">
             <span class="pill-brand">${escHtml(r.brand)}</span>
             <span class="pill-type">${escHtml(r.product_type)}</span>
+            ${pillHtml}
           </div>
-          <input type="checkbox" id="chk-${i}" class="part-chk pc-chk"
-                 data-part="${escHtml(r.part_number)}" data-price="${r.base_price_usd}"
-                 checked onchange="updateSelectionCounter()">
+          ${chkHtml}
         </div>
         <div class="pc-pn">${escHtml(r.part_number)}</div>
         ${r.line_name ? `<div class="pc-ln">${escHtml(r.brand)} · ${escHtml(r.line_name)}</div>` : ''}
         <div class="pc-fit">${r.fit_year} ${escHtml(r.fit_make)} ${escHtml(r.fit_model)}${r.fit_payload_chassis ? ' · ' + escHtml(r.fit_payload_chassis) : ''}${r.fit_engine_displacement ? ' · ' + escHtml(r.fit_engine_displacement) : ''}</div>
+        ${diagHtml}
         <hr class="pc-hr">
         <div class="pc-price-row">
           <span class="pc-price-lbl">Base Price</span>
           <span class="pc-price-val">${fmt(r.base_price_usd)}</span>
         </div>
-      </label>`).join('');
+      </label>`;
+  }).join('');
 
-    body.innerHTML = `
-      <div class="sel-bar">
-        <button class="toggle-sel-btn" onclick="toggleSelectAll()">DESELECT ALL</button>
-        <span class="sel-count-text" id="sel-counter"></span>
-      </div>
-      ${cards}`;
+  body.innerHTML = `
+    <div class="sel-bar">
+      <button class="toggle-sel-btn" onclick="toggleSelectAll()">DESELECT ALL</button>
+      <span class="sel-count-text" id="sel-counter"></span>
+    </div>
+    ${cards}`;
 
-    updateSelectionCounter();
+  updateSelectionCounter();
+}
+
+/* ── Render: quote ───────────────────────────────────────────────────────── */
+function renderQuote(status, data, elapsed) {
+  const body = document.getElementById('results-body');
+  hidePlaceholder();
+
+  if (status >= 500) {
+    setStatus('error', 'ENGINE ERROR', `${data.error} · ${elapsed}ms`);
+    document.getElementById('result-count').textContent = 'ERROR';
+    body.innerHTML = stateCard('error', data.error, data.detail); return;
+  }
+  if (status === 400) {
+    setStatus('error', 'INVALID PAYLOAD', `${data.error} · ${elapsed}ms`);
+    document.getElementById('result-count').textContent = 'REJECTED';
+    body.innerHTML = stateCard('error', data.error, data.detail); return;
+  }
+  if (status === 404 || data.status === 'NO_QUOTE') {
+    setStatus('empty', 'NO QUOTE', `0 parts · ${elapsed}ms`);
+    document.getElementById('result-count').textContent = 'no quote';
+    body.innerHTML = stateCard('empty', 'NO_QUOTE', data.message); return;
+  }
+  if (data.status !== 'QUOTE_READY') {
+    setStatus('error', 'UNEXPECTED RESPONSE', `status=${data.status} · ${elapsed}ms`);
+    document.getElementById('result-count').textContent = 'ERROR';
+    body.innerHTML = stateCard('error', 'UNEXPECTED_STATUS', `Expected QUOTE_READY, got: ${data.status}`); return;
   }
 
-  /* ── Render: quote → stacked line-item cards ────────────────────────────── */
-  function renderQuote(status, data, elapsed) {
-    const body = document.getElementById('results-body');
-    hidePlaceholder();
+  const items = data.line_items || [];
+  const s     = data.summary;
+  setStatus('ok', 'QUOTE READY', `${items.length} item${items.length !== 1 ? 's' : ''} · ${fmt(s.grand_total_usd)} total`);
+  document.getElementById('result-count').textContent = `${items.length} items · ${fmt(s.grand_total_usd)}`;
+  document.getElementById('btn-pdf').classList.add('pulse');
 
-    if (status >= 500) {
-      setStatus('error', 'ENGINE ERROR', `${data.error} · ${elapsed}ms`);
-      document.getElementById('result-count').textContent = 'ERROR';
-      body.innerHTML = stateCard('error', data.error, data.detail); return;
-    }
-    if (status === 400) {
-      setStatus('error', 'INVALID PAYLOAD', `${data.error} · ${elapsed}ms`);
-      document.getElementById('result-count').textContent = 'REJECTED';
-      body.innerHTML = stateCard('error', data.error, data.detail); return;
-    }
-    if (status === 404 || data.status === 'NO_QUOTE') {
-      setStatus('empty', 'NO QUOTE', `0 parts · ${elapsed}ms`);
-      document.getElementById('result-count').textContent = 'no quote';
-      body.innerHTML = stateCard('empty', 'NO_QUOTE', data.message); return;
-    }
-    if (data.status !== 'QUOTE_READY') {
-      setStatus('error', 'UNEXPECTED RESPONSE', `status=${data.status} · ${elapsed}ms`);
-      document.getElementById('result-count').textContent = 'ERROR';
-      body.innerHTML = stateCard('error', 'UNEXPECTED_STATUS', `Expected QUOTE_READY, got: ${data.status}`); return;
-    }
-
-    const items = data.line_items || [];
-    const s     = data.summary;
-    setStatus('ok', 'QUOTE READY', `${items.length} item${items.length !== 1 ? 's' : ''} · ${fmt(s.grand_total_usd)} total`);
-    document.getElementById('result-count').textContent = `${items.length} items · ${fmt(s.grand_total_usd)}`;
-    document.getElementById('btn-pdf').classList.add('pulse');
-
-    const itemCards = items.map(li => `
+  const itemCards = items.map(li => {
+    const pillHtml = fitmentPillLabel(li.fitment_status, li.fitment_label);
+    const diagHtml = li.diagnostics
+      ? `<div style="font-family:var(--mono);font-size:10px;color:var(--amber);margin-top:6px;line-height:1.6;">${escHtml(li.diagnostics)}</div>`
+      : '';
+    const fabHtml = li.fabrication_labor_cost > 0
+      ? `<div class="qi-cell"><span class="qi-cell-lbl">Fab $</span><span class="qi-cell-val" style="color:var(--amber);">${fmt(li.fabrication_labor_cost)}</span></div>`
+      : '';
+    return `
       <div class="qi-card">
         <div class="qi-top">
           <div>
             <div class="qi-pn">${escHtml(li.part_number)}</div>
             <div class="qi-brand">${escHtml(li.brand)}${li.line_name ? ' · ' + escHtml(li.line_name) : ''}</div>
           </div>
-          <span class="pill-type">${escHtml(li.product_type)}</span>
+          <div style="display:flex;gap:6px;flex-wrap:wrap;">
+            <span class="pill-type">${escHtml(li.product_type)}</span>
+            ${pillHtml}
+          </div>
         </div>
+        ${diagHtml}
         <hr class="qi-hr">
         <div class="qi-grid">
-          <div class="qi-cell">
-            <span class="qi-cell-lbl">Parts $</span>
-            <span class="qi-cell-val">${fmt(li.base_price_usd)}</span>
-          </div>
-          <div class="qi-cell">
-            <span class="qi-cell-lbl">Labor Hrs</span>
-            <span class="qi-cell-val">${li.labor_hours}h</span>
-          </div>
-          <div class="qi-cell">
-            <span class="qi-cell-lbl">Labor $</span>
-            <span class="qi-cell-val">${fmt(li.labor_cost_usd)}</span>
-          </div>
+          <div class="qi-cell"><span class="qi-cell-lbl">Parts $</span><span class="qi-cell-val">${fmt(li.base_price_usd)}</span></div>
+          <div class="qi-cell"><span class="qi-cell-lbl">Labor Hrs</span><span class="qi-cell-val">${li.labor_hours}h</span></div>
+          <div class="qi-cell"><span class="qi-cell-lbl">Labor $</span><span class="qi-cell-val">${fmt(li.labor_cost_usd)}</span></div>
+          ${fabHtml}
         </div>
         <hr class="qi-hr">
         <div class="qi-total">
           <span class="qi-total-lbl">Line Total</span>
           <span class="qi-total-val">${fmt(li.line_total_usd)}</span>
         </div>
-      </div>`).join('');
-
-    body.innerHTML = `
-      ${itemCards}
-      <div class="q-summary">
-        <div class="qs-divider-thin"></div>
-        <div class="qs-row"><span class="qs-label">PARTS TOTAL</span><span class="qs-val">${fmt(s.parts_total_usd)}</span></div>
-        <div class="qs-row"><span class="qs-label">LABOR TOTAL</span><span class="qs-val">${fmt(s.labor_total_usd)}</span></div>
-        <div class="qs-divider-double"></div>
-        <div class="qs-row grand">
-          <span class="qs-label">GRAND TOTAL</span>
-          <span class="qs-val">${fmt(s.grand_total_usd)}</span>
-        </div>
-        <div class="qs-divider-thin"></div>
-        <div class="qs-meta">CURRENCY: ${s.currency} &nbsp;·&nbsp; ${items.length} SKU${items.length !== 1 ? 's' : ''} &nbsp;·&nbsp; Generated ${ts()}</div>
       </div>`;
-  }
+  }).join('');
 
-  /* ── Network error ──────────────────────────────────────────────────────── */
-  function renderNetworkError(msg, elapsed) {
-    hidePlaceholder();
-    setStatus('error', 'NETWORK ERROR', elapsed + 'ms');
-    document.getElementById('result-count').textContent = 'ERROR';
-    document.getElementById('results-body').innerHTML = stateCard('error', 'NETWORK_ERROR', escHtml(msg));
-  }
+  const fabRowHtml = (s.fabrication_total_usd || 0) > 0
+    ? `<div class="qs-row fab-row"><span class="qs-label">FABRICATION TOTAL</span><span class="qs-val">${fmt(s.fabrication_total_usd)}</span></div>`
+    : '';
 
-  /* ── Helpers ────────────────────────────────────────────────────────────── */
-  function hidePlaceholder() {
-    const p = document.getElementById('placeholder');
-    if (p) p.style.display = 'none';
-  }
+  body.innerHTML = `
+    ${itemCards}
+    <div class="q-summary">
+      <div class="qs-divider-thin"></div>
+      <div class="qs-row"><span class="qs-label">PARTS TOTAL</span><span class="qs-val">${fmt(s.parts_total_usd)}</span></div>
+      <div class="qs-row"><span class="qs-label">LABOR TOTAL</span><span class="qs-val">${fmt(s.labor_total_usd)}</span></div>
+      ${fabRowHtml}
+      <div class="qs-divider-double"></div>
+      <div class="qs-row grand">
+        <span class="qs-label">GRAND TOTAL</span>
+        <span class="qs-val">${fmt(s.grand_total_usd)}</span>
+      </div>
+      <div class="qs-divider-thin"></div>
+      <div class="qs-meta">CURRENCY: ${s.currency} &nbsp;·&nbsp; ${items.length} SKU${items.length !== 1 ? 's' : ''} &nbsp;·&nbsp; Generated ${ts()}</div>
+    </div>`;
+}
 
-  function stateCard(cls, code, msg) {
-    return `<div class="state-card ${cls}"><div class="sc-code">${escHtml(code)}</div>${escHtml(msg)}</div>`;
-  }
+/* ── Network error ───────────────────────────────────────────────────────── */
+function renderNetworkError(msg, elapsed) {
+  hidePlaceholder();
+  setStatus('error', 'NETWORK ERROR', elapsed + 'ms');
+  document.getElementById('result-count').textContent = 'ERROR';
+  document.getElementById('results-body').innerHTML = stateCard('error', 'NETWORK_ERROR', escHtml(msg));
+}
+
+/* ── Helpers ─────────────────────────────────────────────────────────────── */
+function hidePlaceholder() {
+  const p = document.getElementById('placeholder');
+  if (p) p.style.display = 'none';
+}
+function stateCard(cls, code, msg) {
+  return `<div class="state-card ${cls}"><div class="sc-code">${escHtml(code)}</div>${escHtml(msg)}</div>`;
+}
 </script>
 </body>
 </html>
