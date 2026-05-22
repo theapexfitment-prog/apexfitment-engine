@@ -264,6 +264,48 @@
     .btn-pdf:hover:not(:disabled) { background: #ffc31a; box-shadow: 0 0 20px rgba(255,184,0,.28); }
     .btn-pdf.pulse { animation: pdf-pulse 2.4s ease-in-out infinite; }
     @keyframes pdf-pulse { 0%,100% { box-shadow: 0 0 0 0 rgba(255,184,0,0); } 50% { box-shadow: 0 0 0 7px rgba(255,184,0,.18); } }
+
+    .beta-ticker {
+      background: rgba(0, 212, 255, 0.04);
+      border: 0.5px solid rgba(0, 212, 255, 0.2);
+      border-radius: 6px;
+      padding: 10px 14px;
+      margin-bottom: 16px;
+      font-family: 'JetBrains Mono', monospace;
+    }
+    .ticker-row {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      font-size: 11px;
+      letter-spacing: 0.08em;
+      padding: 2px 0;
+    }
+    .ticker-dot {
+      width: 6px;
+      height: 6px;
+      border-radius: 50%;
+      background: #00ff88;
+      box-shadow: 0 0 6px #00ff88;
+      flex-shrink: 0;
+      animation: pulse-dot 2s ease-in-out infinite;
+    }
+    .ticker-dot.amber {
+      background: #ffb800;
+      box-shadow: 0 0 6px #ffb800;
+    }
+    .ticker-label {
+      color: #6b6b80;
+      text-transform: uppercase;
+      font-size: 10px;
+    }
+    .ticker-divider { color: #2a2a3a; }
+    .ticker-value { color: #00d4ff; }
+    .ticker-value.amber { color: #ffb800; }
+    @keyframes pulse-dot {
+      0%, 100% { opacity: 1; }
+      50%       { opacity: 0.3; }
+    }
     @media (min-width: 900px) { .btn-pdf { height: 52px; font-size: 13px; } }
     .btn-spinner {
       width: 14px; height: 14px; border-radius: 50%; flex-shrink: 0;
@@ -588,6 +630,20 @@
         <input id="signin-password" type="password" placeholder="••••••••" autocomplete="current-password" />
       </div>
       <button class="auth-btn primary" onclick="doSignIn(document.getElementById('signin-email').value.trim(), document.getElementById('signin-password').value)">SIGN IN</button>
+      <div class="beta-ticker">
+        <div class="ticker-row">
+          <span class="ticker-dot"></span>
+          <span class="ticker-label">BETA ALLOCATION</span>
+          <span class="ticker-divider">·</span>
+          <span class="ticker-value">2 of 5 Houston spots filled</span>
+        </div>
+        <div class="ticker-row">
+          <span class="ticker-dot amber"></span>
+          <span class="ticker-label">WAITLIST</span>
+          <span class="ticker-divider">·</span>
+          <span class="ticker-value amber">14 shops processing</span>
+        </div>
+      </div>
       <button class="auth-btn secondary" onclick="showScreen('register')">REQUEST ACCESS</button>
       <div class="auth-switch">New shop? <a onclick="showScreen('register')">Request access</a></div>
     </div>
