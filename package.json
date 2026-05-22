@@ -12,6 +12,8 @@
   },
   "dependencies": {
     "@clerk/clerk-sdk-node": "^4.13.23",
+    "axios": "^1.16.1",
+    "cheerio": "^1.2.0",
     "dotenv": "^17.4.2",
     "express": "^4.22.2",
     "multer": "^2.1.1",
