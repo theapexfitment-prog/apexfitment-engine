@@ -5,7 +5,8 @@ require('dotenv').config();
 const express  = require('express');
 const sqlite3  = require('sqlite3').verbose();
 const path     = require('path');
-const { generateQuotePdf } = require('./pdf_generator');
+const { generateQuotePdf }      = require('./pdf_generator');
+const { calculateFrictionScore } = require('./friction_score');
 const { requireAuth, requireShop, requireAdmin } = require('./middleware/auth');
 
 const PORT    = process.env.PORT || 3000;
@@ -198,20 +199,12 @@ function runQuoteQuery(params, product_type_filter, selected_part_numbers, shop,
     if (err) return callback(err, null);
     if (rows.length === 0) return callback(null, null);
 
-    let parts_total_usd       = 0;
-    let labor_total_usd       = 0;
-    let fabrication_total_usd = 0;
-
-    const line_items = rows.map((r) => {
+    // Build raw line items without multiplier so friction score can inspect them
+    const raw_items = rows.map((r) => {
       const resolved             = resolveClash(r, shop);
       const labor_cost_usd       = parseFloat((r.labor_hours * r.rate_per_hour).toFixed(2));
       const fabrication_labor_cost = parseFloat((resolved.fabrication_labor_cost || 0).toFixed(2));
       const line_total_usd       = parseFloat((r.base_price_usd + labor_cost_usd + fabrication_labor_cost).toFixed(2));
-
-      parts_total_usd       += r.base_price_usd;
-      labor_total_usd       += labor_cost_usd;
-      fabrication_total_usd += fabrication_labor_cost;
-
       return {
         part_number:             r.part_number,
         brand:                   r.brand,
@@ -230,6 +223,25 @@ function runQuoteQuery(params, product_type_filter, selected_part_numbers, shop,
       };
     });
 
+    // Friction score — apply labor multiplier to all labor/fab costs
+    const friction = calculateFrictionScore(raw_items, { drivetrain: params.drivetrain });
+    const m = friction.labor_multiplier;
+
+    const line_items = raw_items.map(item => {
+      const labor_cost_usd       = parseFloat((item.labor_cost_usd * m).toFixed(2));
+      const fabrication_labor_cost = parseFloat((item.fabrication_labor_cost * m).toFixed(2));
+      const line_total_usd       = parseFloat((item.base_price_usd + labor_cost_usd + fabrication_labor_cost).toFixed(2));
+      return { ...item, labor_cost_usd, fabrication_labor_cost, line_total_usd };
+    });
+
+    let parts_total_usd       = 0;
+    let labor_total_usd       = 0;
+    let fabrication_total_usd = 0;
+    line_items.forEach(item => {
+      parts_total_usd       += item.base_price_usd;
+      labor_total_usd       += item.labor_cost_usd;
+      fabrication_total_usd += item.fabrication_labor_cost;
+    });
     parts_total_usd       = parseFloat(parts_total_usd.toFixed(2));
     labor_total_usd       = parseFloat(labor_total_usd.toFixed(2));
     fabrication_total_usd = parseFloat(fabrication_total_usd.toFixed(2));
@@ -241,7 +253,8 @@ function runQuoteQuery(params, product_type_filter, selected_part_numbers, shop,
       status: 'QUOTE_READY',
       build: { year, make, model, engine_displacement, payload_chassis, cab_type, bed_length, drivetrain },
       line_items,
-      summary: { parts_total_usd, labor_total_usd, fabrication_total_usd, grand_total_usd, currency: 'USD' },
+      friction,
+      summary: { parts_total_usd, labor_total_usd, fabrication_total_usd, grand_total_usd, labor_multiplier_applied: m, currency: 'USD' },
     });
   });
 }

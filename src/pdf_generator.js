@@ -104,12 +104,63 @@ function generateQuotePdf(quoteData, shop, outputStream) {
        .text(value, cx + 6, y + 18, { width: colW - 10, lineBreak: false });
   });
 
+  // ── FRICTION ANALYSIS ─────────────────────────────────────────────────────
+  y = 110 + boxH;  // bottom of build config box = 154
+  const fr = quoteData.friction;
+  if (fr) {
+    y += 8;
+    doc.font('Helvetica-Bold').fontSize(7).fillColor(C.gray)
+       .text('FRICTION ANALYSIS', L, y, { characterSpacing: 1.2 });
+    y += 12;
+
+    const FRH = 54;
+    doc.rect(L, y, W, FRH).fillColor(C.darkBg).fill();
+
+    // Score number
+    doc.font('Helvetica-Bold').fontSize(22).fillColor(C.amber)
+       .text(fr.score.toFixed(1), L + 12, y + 8, { width: 52, lineBreak: false });
+    doc.font('Helvetica').fontSize(7.5).fillColor(C.gray)
+       .text('/ 10', L + 12, y + 36, { width: 52, lineBreak: false });
+
+    // Score bar
+    const barX = L + 72;
+    const barW = 268;
+    const barH = 8;
+    const barY = y + 14;
+    const fillW = Math.round((fr.score / 10) * barW);
+    let barColor = C.green;
+    if (fr.score > 8.5)    barColor = C.red;
+    else if (fr.score > 7) barColor = '#CC6600';
+    else if (fr.score > 5) barColor = C.amber;
+    else if (fr.score > 3) barColor = '#88BB00';
+    doc.rect(barX, barY, barW, barH).fillColor('#2A2A44').fill();
+    if (fillW > 0) doc.rect(barX, barY, fillW, barH).fillColor(barColor).fill();
+
+    doc.font('Helvetica-Bold').fontSize(9).fillColor(C.white)
+       .text(fr.complexity_label, barX, barY + 12, { width: barW, lineBreak: false });
+    doc.font('Helvetica').fontSize(7).fillColor(C.gray)
+       .text(`${fr.labor_multiplier}× labor multiplier applied`, barX, barY + 24, { width: barW, lineBreak: false });
+
+    // Contributing factors (right column)
+    const factorX = barX + barW + 12;
+    const factorW = R - factorX - 2;
+    doc.font('Helvetica-Bold').fontSize(6.5).fillColor(C.gray)
+       .text('FACTORS', factorX, y + 8, { width: factorW, lineBreak: false });
+    (fr.factors || []).slice(0, 4).forEach((f, i) => {
+      doc.font('Helvetica').fontSize(6).fillColor(C.accent)
+         .text(`· ${f}`, factorX, y + 18 + i * 9, { width: factorW });
+    });
+
+    y += FRH + 8;
+  } else {
+    y += 14;
+  }
+
   // ── LINE ITEMS TABLE ───────────────────────────────────────────────────────
-  y = 168;
   doc.font('Helvetica-Bold').fontSize(7).fillColor(C.gray)
      .text('LINE ITEMS', L, y, { characterSpacing: 1.2 });
 
-  y = 180;
+  y += 12;
 
   // 9 columns — total = 512
   const cols = [

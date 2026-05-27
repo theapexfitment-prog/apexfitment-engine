@@ -420,6 +420,24 @@
     .pc-price-lbl { font-family: var(--mono); font-size: 10px; text-transform: uppercase; letter-spacing: .1em; color: var(--text-dim); }
     .pc-price-val { font-family: var(--mono); font-size: 18px; font-weight: 700; color: var(--green); }
 
+    /* ── Friction score card ─────────────────────────────────────────────── */
+    .friction-card {
+      background: #0D1117; border: 1px solid var(--border);
+      border-radius: var(--r-card); padding: 16px 20px; margin-bottom: 16px;
+      animation: up .18s ease both;
+    }
+    .friction-header { display: flex; align-items: center; gap: 16px; margin-bottom: 6px; }
+    .friction-score-num { font-family: var(--mono); font-size: 38px; font-weight: 700; line-height: 1; }
+    .friction-score-denom { font-family: var(--mono); font-size: 11px; color: var(--text-dim); margin-top: 3px; }
+    .friction-right { flex: 1; }
+    .friction-bar-track { height: 8px; background: var(--surface); border-radius: 4px; overflow: hidden; margin-bottom: 8px; }
+    .friction-bar-fill { height: 100%; border-radius: 4px; }
+    .friction-label { font-family: var(--mono); font-size: 11px; font-weight: 700; letter-spacing: 1px; }
+    .friction-multiplier { font-family: var(--mono); font-size: 10px; color: var(--text-dim); margin-top: 2px; }
+    .friction-factors { display: flex; flex-wrap: wrap; gap: 4px; margin-top: 10px; }
+    .friction-factor { font-family: var(--mono); font-size: 9px; color: var(--accent); background: rgba(0,212,255,.07); border: 1px solid rgba(0,212,255,.18); padding: 2px 7px; border-radius: 3px; }
+    .friction-note { font-family: var(--mono); font-size: 10px; color: var(--text-dim); margin-top: 8px; border-top: 1px solid var(--border); padding-top: 8px; }
+
     /* ── Quote line-item cards ───────────────────────────────────────────── */
     .qi-card {
       background: var(--surface-2); border: 1px solid var(--border);
@@ -1325,6 +1343,41 @@ function renderCompatibility(status, data, elapsed) {
   updateSelectionCounter();
 }
 
+/* ── Friction helpers ────────────────────────────────────────────────────── */
+function frictionBarColor(score) {
+  if (score <= 3)   return '#00AA55';
+  if (score <= 5)   return '#88BB00';
+  if (score <= 7)   return '#CC8800';
+  if (score <= 8.5) return '#CC6600';
+  return '#CC2222';
+}
+
+function renderFrictionCard(fr) {
+  const color   = frictionBarColor(fr.score);
+  const pct     = Math.round((fr.score / 10) * 100);
+  const factors = (fr.factors || []).map(f =>
+    `<span class="friction-factor">${escHtml(f)}</span>`).join('');
+  return `
+    <div class="friction-card">
+      <div style="font-family:var(--mono);font-size:9px;letter-spacing:1.2px;color:var(--text-dim);text-transform:uppercase;margin-bottom:10px;">Friction Score</div>
+      <div class="friction-header">
+        <div>
+          <div class="friction-score-num" style="color:${color};">${fr.score.toFixed(1)}</div>
+          <div class="friction-score-denom">/ 10</div>
+        </div>
+        <div class="friction-right">
+          <div class="friction-bar-track">
+            <div class="friction-bar-fill" style="width:${pct}%;background:${color};"></div>
+          </div>
+          <div class="friction-label" style="color:${color};">${escHtml(fr.complexity_label)}</div>
+          <div class="friction-multiplier">${fr.labor_multiplier}&times; labor multiplier applied</div>
+        </div>
+      </div>
+      ${factors ? `<div class="friction-factors">${factors}</div>` : ''}
+      <div class="friction-note">${escHtml(fr.adjusted_labor_note)}</div>
+    </div>`;
+}
+
 /* ── Render: quote ───────────────────────────────────────────────────────── */
 function renderQuote(status, data, elapsed) {
   const body = document.getElementById('results-body');
@@ -1356,6 +1409,8 @@ function renderQuote(status, data, elapsed) {
   setStatus('ok', 'QUOTE READY', `${items.length} item${items.length !== 1 ? 's' : ''} · ${fmt(s.grand_total_usd)} total`);
   document.getElementById('result-count').textContent = `${items.length} items · ${fmt(s.grand_total_usd)}`;
   document.getElementById('btn-pdf').classList.add('pulse');
+
+  const frictionHtml = data.friction ? renderFrictionCard(data.friction) : '';
 
   const itemCards = items.map(li => {
     const pillHtml = fitmentPillLabel(li.fitment_status, li.fitment_label);
@@ -1398,6 +1453,7 @@ function renderQuote(status, data, elapsed) {
     : '';
 
   body.innerHTML = `
+    ${frictionHtml}
     ${itemCards}
     <div class="q-summary">
       <div class="qs-divider-thin"></div>
@@ -1410,7 +1466,7 @@ function renderQuote(status, data, elapsed) {
         <span class="qs-val">${fmt(s.grand_total_usd)}</span>
       </div>
       <div class="qs-divider-thin"></div>
-      <div class="qs-meta">CURRENCY: ${s.currency} &nbsp;·&nbsp; ${items.length} SKU${items.length !== 1 ? 's' : ''} &nbsp;·&nbsp; Generated ${ts()}</div>
+      <div class="qs-meta">CURRENCY: ${s.currency} &nbsp;·&nbsp; ${items.length} SKU${items.length !== 1 ? 's' : ''}${s.labor_multiplier_applied && s.labor_multiplier_applied > 1 ? ` &nbsp;·&nbsp; ${s.labor_multiplier_applied}&times; labor` : ''} &nbsp;·&nbsp; Generated ${ts()}</div>
     </div>`;
 }
 
