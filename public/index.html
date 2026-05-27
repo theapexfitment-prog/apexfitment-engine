@@ -1383,6 +1383,16 @@ function renderQuote(status, data, elapsed) {
   const body = document.getElementById('results-body');
   hidePlaceholder();
 
+  if (status === 401) {
+    setStatus('error', 'UNAUTHENTICATED', `${elapsed}ms`);
+    document.getElementById('result-count').textContent = 'AUTH';
+    body.innerHTML = stateCard('error', 'UNAUTHENTICATED', data.detail || data.error || 'Session expired — please sign in again.'); return;
+  }
+  if (status === 403) {
+    setStatus('error', 'ACCESS DENIED', `${data.error} · ${elapsed}ms`);
+    document.getElementById('result-count').textContent = 'DENIED';
+    body.innerHTML = stateCard('error', data.error || 'FORBIDDEN', data.detail || 'Your account does not have access.'); return;
+  }
   if (status >= 500) {
     setStatus('error', 'ENGINE ERROR', `${data.error} · ${elapsed}ms`);
     document.getElementById('result-count').textContent = 'ERROR';
@@ -1399,9 +1409,9 @@ function renderQuote(status, data, elapsed) {
     body.innerHTML = stateCard('empty', 'NO_QUOTE', data.message); return;
   }
   if (data.status !== 'QUOTE_READY') {
-    setStatus('error', 'UNEXPECTED RESPONSE', `status=${data.status} · ${elapsed}ms`);
+    setStatus('error', 'UNEXPECTED RESPONSE', `HTTP ${status} · ${elapsed}ms`);
     document.getElementById('result-count').textContent = 'ERROR';
-    body.innerHTML = stateCard('error', 'UNEXPECTED_STATUS', `Expected QUOTE_READY, got: ${data.status}`); return;
+    body.innerHTML = stateCard('error', data.error || 'UNEXPECTED_STATUS', data.detail || `Unexpected response (HTTP ${status})`); return;
   }
 
   const items = data.line_items || [];

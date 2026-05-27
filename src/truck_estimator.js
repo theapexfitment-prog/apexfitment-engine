@@ -224,7 +224,13 @@ function runQuoteQuery(params, product_type_filter, selected_part_numbers, shop,
     });
 
     // Friction score — apply labor multiplier to all labor/fab costs
-    const friction = calculateFrictionScore(raw_items, { drivetrain: params.drivetrain });
+    let friction;
+    try {
+      friction = calculateFrictionScore(raw_items, { drivetrain: params.drivetrain });
+    } catch (frErr) {
+      console.error('[ApexFitment] friction score error:', frErr.message);
+      friction = { score: 1.0, complexity_label: 'STANDARD', labor_multiplier: 1.0, factors: [], adjusted_labor_note: 'Standard labor rates applied' };
+    }
     const m = friction.labor_multiplier;
 
     const line_items = raw_items.map(item => {
