@@ -677,7 +677,14 @@
       <div class="auth-field"><label>Shop Name</label><input id="reg-shop" type="text" placeholder="Apex Performance Houston" /></div>
       <div class="auth-field"><label>Owner Name</label><input id="reg-owner" type="text" placeholder="Your full name" /></div>
       <div class="auth-field"><label>City</label><input id="reg-city" type="text" placeholder="Houston" /></div>
-      <button class="auth-btn primary" onclick="doRegister()">SUBMIT REQUEST</button>
+      <label style="display:flex;align-items:flex-start;gap:10px;margin-bottom:14px;cursor:pointer;">
+        <input type="checkbox" id="reg-disclaimer" onchange="document.getElementById('btn-submit-request').disabled=!this.checked;" style="margin-top:2px;flex-shrink:0;" />
+        <span style="font-family:var(--mono);font-size:11px;color:var(--text-dim);line-height:1.6;">
+          I understand that ApexFitment provides Theoretical Geometry Analysis with ±3mm fabrication tolerance.
+          Final fitment verification remains the responsibility of the installing technician.
+        </span>
+      </label>
+      <button id="btn-submit-request" class="auth-btn primary" onclick="doRegister()" disabled>SUBMIT REQUEST</button>
       <div class="auth-switch">Already registered? <a onclick="showScreen('signin')">Sign in</a></div>
     </div>
 

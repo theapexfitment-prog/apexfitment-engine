@@ -42,6 +42,55 @@ function insertProduct(p, f) {
   );
 }
 
+// ── GMT800 helpers ────────────────────────────────────────────────────────
+function yrs(s, e) { const r = []; for (let y = s; y <= e; y++) r.push(y); return r; }
+
+function insertGMT(p, clash, specs) {
+  db.run(
+    `INSERT OR IGNORE INTO products
+       (part_number, brand, line_name, product_type, diameter_inches, material, base_price_usd)
+     VALUES (?, ?, ?, ?, ?, ?, ?)`,
+    [p.part_number, p.brand, p.line_name, p.product_type, p.diameter_inches, p.material, p.base_price_usd],
+    function (err) {
+      if (err) { console.error(`[GMT800] ${p.part_number}:`, err.message); return; }
+      if (this.lastID === 0) return;
+      const id = this.lastID;
+      const cd  = clash?.clash_detected  ?? 0,    cl  = clash?.clash_level     ?? 0;
+      const cv  = clash?.clash_variable  ?? null,  cva = clash?.clash_value     ?? null;
+      const ct  = clash?.clash_tolerance ?? null,  cd2 = clash?.clash_delta_mm  ?? null;
+
+      specs.forEach(s => {
+        // Per-spec clash overrides the product-level default clash
+        const sc  = s.clash !== undefined ? s.clash : clash;
+        const cd  = sc?.clash_detected  ?? 0,    cl  = sc?.clash_level     ?? 0;
+        const cv  = sc?.clash_variable  ?? null,  cva = sc?.clash_value     ?? null;
+        const ct  = sc?.clash_tolerance ?? null,  cd2 = sc?.clash_delta_mm  ?? null;
+
+        const years = s.yearRange ? yrs(s.yearRange[0], s.yearRange[1]) : [s.year];
+        const pairs = s.pairs || [{ make: s.make, model: s.model }];
+        const engs  = s.engines     || [s.engine     ?? null];
+        const dts   = s.drivetrains || [s.drivetrain ?? null];
+        const cabs  = s.cabTypes    || [null];
+        const beds  = s.bedLengths  || [null];
+        const pays  = s.payloads    || [null];
+
+        years.forEach(yr => pairs.forEach(({ make, model }) =>
+          engs.forEach(eng => dts.forEach(dt => cabs.forEach(cab => beds.forEach(bed => pays.forEach(pay =>
+            db.run(
+              `INSERT OR IGNORE INTO exhaust_fitment
+               (product_id, fit_year, fit_make, fit_model, fit_payload_chassis,
+                fit_cab_type, fit_bed_length, fit_engine_displacement, fit_drivetrain,
+                clash_detected, clash_level, clash_variable, clash_value, clash_tolerance, clash_delta_mm)
+               VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+              [id, yr, make, model, pay, cab, bed, eng, dt, cd, cl, cv, cva, ct, cd2],
+              e2 => { if (e2) console.error(`[GMT800] fitment ${p.part_number}:`, e2.message); }
+            )
+          )))))));
+      });
+    }
+  );
+}
+
 db.serialize(() => {
   db.run('PRAGMA foreign_keys = ON');
 
@@ -234,6 +283,138 @@ db.serialize(() => {
     { year: 2019, make: 'Dodge', model: 'Challenger', payload_chassis: 'SRT Hellcat', cab_type: null, bed_length: null, engine_displacement: '6.2L', drivetrain: null }
   );
 
+  // ── GMT800 Platform (1999–2007) ─────────────────────────────────────────
+  // Long Tube Headers
+  insertGMT({part_number:'LTH-GMT800-BBK-153',brand:'BBK Performance',line_name:'1-5/8 Shorty Headers',product_type:'Long Tube Headers',diameter_inches:1.625,material:'Chrome Steel',base_price_usd:289.99},null,[
+    {yearRange:[1999,2006],pairs:[{make:'Chevrolet',model:'Silverado 1500'},{make:'GMC',model:'Sierra 1500'}],engines:['4.8L','5.3L'],drivetrains:['2WD','4WD']},
+    {yearRange:[2000,2006],pairs:[{make:'Chevrolet',model:'Tahoe'},{make:'Chevrolet',model:'Suburban 1500'}],engines:['5.3L'],drivetrains:['2WD','4WD']},
+  ]);
+  insertGMT({part_number:'LTH-GMT800-HOOKER-178-2WD',brand:'Hooker',line_name:'BlackHeart 1-7/8 Long Tube',product_type:'Long Tube Headers',diameter_inches:1.875,material:'Stainless Steel 304',base_price_usd:849.99},null,[
+    {yearRange:[1999,2006],pairs:[{make:'Chevrolet',model:'Silverado 1500'},{make:'GMC',model:'Sierra 1500'}],engines:['5.3L'],drivetrains:['2WD']},
+    {yearRange:[2001,2006],pairs:[{make:'Chevrolet',model:'Suburban 1500'},{make:'Chevrolet',model:'Tahoe'}],engines:['5.3L'],drivetrains:['2WD']},
+  ]);
+  insertGMT({part_number:'LTH-GMT800-HOOKER-178-4WD',brand:'Hooker',line_name:'BlackHeart 1-7/8 Long Tube 4WD',product_type:'Long Tube Headers',diameter_inches:1.875,material:'Stainless Steel 304',base_price_usd:949.99},{clash_detected:1,clash_level:1,clash_variable:'transfer_case_clearance',clash_value:28.0,clash_tolerance:36.0,clash_delta_mm:-8.0},[
+    {yearRange:[1999,2006],pairs:[{make:'Chevrolet',model:'Silverado 1500'},{make:'GMC',model:'Sierra 1500'}],engines:['5.3L'],drivetrains:['4WD']},
+    {yearRange:[2001,2006],pairs:[{make:'Chevrolet',model:'Suburban 1500'},{make:'Chevrolet',model:'Tahoe'}],engines:['5.3L'],drivetrains:['4WD']},
+  ]);
+  insertGMT({part_number:'LTH-GMT800-KOOKS-175-60L',brand:'Kooks',line_name:'Green Catted 1-3/4 Long Tube',product_type:'Long Tube Headers',diameter_inches:1.750,material:'Stainless Steel 304',base_price_usd:1299.99},null,[
+    {yearRange:[2001,2007],pairs:[{make:'Chevrolet',model:'Silverado 2500HD'},{make:'GMC',model:'Sierra 2500HD'}],engines:['6.0L'],drivetrains:['2WD','4WD']},
+    {yearRange:[2002,2006],pairs:[{make:'Chevrolet',model:'Suburban 2500'}],engines:['6.0L'],drivetrains:['2WD','4WD']},
+  ]);
+  insertGMT({part_number:'LTH-GMT800-ARH-178-LSX',brand:'American Racing Headers',line_name:'ARH LS Swap Long Tube',product_type:'Long Tube Headers',diameter_inches:1.875,material:'Stainless Steel 304',base_price_usd:1449.99},null,[
+    {yearRange:[1999,2006],pairs:[{make:'Chevrolet',model:'Silverado 1500'},{make:'GMC',model:'Sierra 1500'}],engines:['5.3L','6.0L'],drivetrains:['2WD']},
+    {yearRange:[1999,2006],pairs:[{make:'Chevrolet',model:'Silverado 1500'},{make:'GMC',model:'Sierra 1500'}],engines:['5.3L','6.0L'],drivetrains:['4WD'],clash:{clash_detected:1,clash_level:2,clash_variable:'4WD_front_axle_header_conflict',clash_value:null,clash_tolerance:null,clash_delta_mm:15.0}},
+  ]);
+  insertGMT({part_number:'LTH-GMT800-BBK-175-81L',brand:'BBK Performance',line_name:'1-3/4 Heavy Duty',product_type:'Long Tube Headers',diameter_inches:1.750,material:'Chrome Steel',base_price_usd:379.99},{clash_detected:1,clash_level:2,clash_variable:'block_width_incompatible',clash_value:null,clash_tolerance:null,clash_delta_mm:22.0},[
+    {yearRange:[2001,2006],pairs:[{make:'Chevrolet',model:'Silverado 2500HD'},{make:'GMC',model:'Sierra 2500HD'},{make:'Chevrolet',model:'Silverado 3500'},{make:'GMC',model:'Sierra 3500'}],engines:['8.1L'],drivetrains:['2WD','4WD']},
+  ]);
+  insertGMT({part_number:'LTH-GMT800-SWAP-LSXR-178',brand:'LSX Racing',line_name:'LS Swap Long Tube GMT800',product_type:'Long Tube Headers',diameter_inches:1.875,material:'Stainless Steel 304',base_price_usd:1099.99},null,[
+    {yearRange:[1999,2006],pairs:[{make:'Chevrolet',model:'Silverado 1500'},{make:'GMC',model:'Sierra 1500'}],engines:['5.3L','6.0L'],drivetrains:['2WD']},
+  ]);
+  insertGMT({part_number:'LTH-GMT800-SWAP-HOOKER-4WD',brand:'Hooker',line_name:'LS Swap 4WD Specific GMT800',product_type:'Long Tube Headers',diameter_inches:1.875,material:'Stainless Steel 304',base_price_usd:1249.99},null,[
+    {yearRange:[1999,2006],pairs:[{make:'Chevrolet',model:'Silverado 1500'},{make:'GMC',model:'Sierra 1500'}],engines:['5.3L','6.0L'],drivetrains:['4WD']},
+  ]);
+
+  // Cat-Back Exhausts
+  insertGMT({part_number:'CB-GMT800-FLOW-409-48L',brand:'Flowmaster',line_name:'409S Series Cat-Back',product_type:'Cat-Back',diameter_inches:3.0,material:'Stainless Steel 409',base_price_usd:529.99},null,[
+    {yearRange:[1999,2006],pairs:[{make:'Chevrolet',model:'Silverado 1500'},{make:'GMC',model:'Sierra 1500'}],engines:['4.8L','5.3L'],drivetrains:['2WD','4WD'],cabTypes:['Regular Cab','Extended Cab'],bedLengths:['Standard Bed']},
+  ]);
+  insertGMT({part_number:'CB-GMT800-FLOW-409-60L-CC',brand:'Flowmaster',line_name:'409S Crew Cab Cat-Back',product_type:'Cat-Back',diameter_inches:3.0,material:'Stainless Steel 409',base_price_usd:569.99},null,[
+    {yearRange:[2000,2006],pairs:[{make:'Chevrolet',model:'Silverado 1500'},{make:'GMC',model:'Sierra 1500'}],engines:['5.3L'],drivetrains:['2WD','4WD'],cabTypes:['Crew Cab'],bedLengths:['Short Bed','Standard Bed']},
+  ]);
+  insertGMT({part_number:'CB-GMT800-MAGNA-16584',brand:'Magnaflow',line_name:'Street Series Cat-Back',product_type:'Cat-Back',diameter_inches:3.0,material:'Stainless Steel 304',base_price_usd:649.99},null,[
+    {yearRange:[2004,2007],pairs:[{make:'Chevrolet',model:'Silverado 1500'},{make:'GMC',model:'Sierra 1500'}],engines:['5.3L'],drivetrains:['2WD','4WD'],cabTypes:['Extended Cab','Crew Cab'],bedLengths:['Standard Bed','Short Bed']},
+  ]);
+  insertGMT({part_number:'CB-GMT800-BORLA-140307',brand:'Borla',line_name:'S-Type Cat-Back',product_type:'Cat-Back',diameter_inches:3.0,material:'Stainless Steel 304',base_price_usd:849.99},null,[
+    {yearRange:[1999,2006],pairs:[{make:'Chevrolet',model:'Silverado 1500HD'},{make:'GMC',model:'Sierra 1500HD'},{make:'Chevrolet',model:'Silverado 2500HD'},{make:'GMC',model:'Sierra 2500HD'}],engines:['5.3L','6.0L'],drivetrains:['2WD','4WD'],cabTypes:['Extended Cab','Crew Cab']},
+  ]);
+  insertGMT({part_number:'CB-GMT800-MAGNA-SUBURBAN',brand:'Magnaflow',line_name:'Competition Series SUV',product_type:'Cat-Back',diameter_inches:2.5,material:'Stainless Steel 304',base_price_usd:549.99},null,[
+    {yearRange:[2000,2006],pairs:[{make:'Chevrolet',model:'Suburban 1500'}],engines:['5.3L'],drivetrains:['2WD','4WD']},
+    {yearRange:[2000,2006],pairs:[{make:'Chevrolet',model:'Tahoe'}],engines:['5.3L'],drivetrains:['2WD','4WD']},
+    {yearRange:[2000,2006],pairs:[{make:'GMC',model:'Yukon'}],engines:['5.3L'],drivetrains:['2WD','4WD']},
+  ]);
+  insertGMT({part_number:'CB-GMT800-BORLA-ESCALADE',brand:'Borla',line_name:'ATAK Cat-Back',product_type:'Cat-Back',diameter_inches:2.5,material:'Stainless Steel 304',base_price_usd:949.99},null,[
+    {yearRange:[2002,2006],pairs:[{make:'Cadillac',model:'Escalade'}],engines:['6.0L'],drivetrains:['2WD','4WD']},
+  ]);
+  insertGMT({part_number:'CB-GMT800-FLOW-HD-2500',brand:'Flowmaster',line_name:'Force II Heavy Duty',product_type:'Cat-Back',diameter_inches:3.5,material:'Aluminized Steel',base_price_usd:429.99},null,[
+    {yearRange:[2001,2006],pairs:[{make:'Chevrolet',model:'Silverado 2500HD'},{make:'GMC',model:'Sierra 2500HD'},{make:'Chevrolet',model:'Silverado 3500'},{make:'GMC',model:'Sierra 3500'}],engines:['6.0L','8.1L'],drivetrains:['2WD','4WD'],cabTypes:['Regular Cab','Extended Cab','Crew Cab']},
+  ]);
+
+  // Cold Air Intakes
+  insertGMT({part_number:'CAI-GMT800-KN-57-3040',brand:'K&N',line_name:'57 Series FIPK',product_type:'Cold Air Intake',diameter_inches:0.0,material:'Composite/Oiled Cotton',base_price_usd:389.99},null,[
+    {yearRange:[1999,2006],pairs:[{make:'Chevrolet',model:'Silverado 1500'},{make:'GMC',model:'Sierra 1500'}],engines:['4.8L','5.3L'],drivetrains:['2WD','4WD']},
+    {yearRange:[2000,2006],pairs:[{make:'Chevrolet',model:'Tahoe'},{make:'Chevrolet',model:'Suburban 1500'}],engines:['5.3L'],drivetrains:['2WD','4WD']},
+  ]);
+  insertGMT({part_number:'CAI-GMT800-VOLANT-15850',brand:'Volant',line_name:'Cold Air with PowerCore',product_type:'Cold Air Intake',diameter_inches:0.0,material:'Composite',base_price_usd:449.99},null,[
+    {yearRange:[2003,2006],pairs:[{make:'Chevrolet',model:'Silverado 1500'},{make:'GMC',model:'Sierra 1500'}],engines:['5.3L'],drivetrains:['2WD','4WD']},
+  ]);
+  insertGMT({part_number:'CAI-GMT800-SB-75-5069',brand:'S&B Filters',line_name:'Cold Air Intake Kit',product_type:'Cold Air Intake',diameter_inches:0.0,material:'Composite/Dry Extendable',base_price_usd:329.99},null,[
+    {yearRange:[2003,2007],pairs:[{make:'Chevrolet',model:'Silverado 2500HD'},{make:'GMC',model:'Sierra 2500HD'}],engines:['6.0L'],drivetrains:['2WD','4WD']},
+  ]);
+  insertGMT({part_number:'CAI-GMT800-AIRAID-200-108',brand:'Airaid',line_name:'MXP Series Intake',product_type:'Cold Air Intake',diameter_inches:0.0,material:'Composite',base_price_usd:359.99},null,[
+    {yearRange:[1999,2006],pairs:[{make:'Chevrolet',model:'Silverado 1500'},{make:'GMC',model:'Sierra 1500'}],engines:['4.8L','5.3L'],drivetrains:['2WD','4WD']},
+    {yearRange:[2000,2006],pairs:[{make:'GMC',model:'Yukon'},{make:'GMC',model:'Yukon XL'}],engines:['5.3L'],drivetrains:['2WD','4WD']},
+  ]);
+  insertGMT({part_number:'CAI-GMT800-JLT-50330',brand:'JLT Performance',line_name:'Series 3 Cold Air',product_type:'Cold Air Intake',diameter_inches:0.0,material:'Composite',base_price_usd:299.99},null,[
+    {yearRange:[2001,2006],pairs:[{make:'Chevrolet',model:'Suburban 2500'}],engines:['6.0L'],drivetrains:['2WD','4WD']},
+  ]);
+  insertGMT({part_number:'CAI-GMT800-KN-ESCALADE',brand:'K&N',line_name:'Typhoon Performance Intake',product_type:'Cold Air Intake',diameter_inches:0.0,material:'Composite',base_price_usd:419.99},null,[
+    {yearRange:[2002,2006],pairs:[{make:'Cadillac',model:'Escalade'}],engines:['6.0L'],drivetrains:['2WD','4WD']},
+  ]);
+
+  // Camshaft Kits
+  insertGMT({part_number:'CAM-GMT800-TSP-STAGE1-53',brand:'Texas Speed',line_name:'Stage 1 Truck Cam 5.3L',product_type:'Camshaft Kit',diameter_inches:0.0,material:'Billet Steel',base_price_usd:549.99},null,[
+    {yearRange:[1999,2006],pairs:[{make:'Chevrolet',model:'Silverado 1500'},{make:'GMC',model:'Sierra 1500'}],engines:['5.3L'],drivetrains:['2WD','4WD']},
+  ]);
+  insertGMT({part_number:'CAM-GMT800-TSP-STAGE2-53',brand:'Texas Speed',line_name:'Stage 2 Truck Cam 5.3L',product_type:'Camshaft Kit',diameter_inches:0.0,material:'Billet Steel',base_price_usd:649.99},null,[
+    {yearRange:[1999,2006],pairs:[{make:'Chevrolet',model:'Silverado 1500'},{make:'GMC',model:'Sierra 1500'}],engines:['5.3L'],drivetrains:['2WD','4WD']},
+    {yearRange:[2000,2006],pairs:[{make:'Chevrolet',model:'Tahoe'},{make:'Chevrolet',model:'Suburban 1500'}],engines:['5.3L'],drivetrains:['2WD','4WD']},
+  ]);
+  insertGMT({part_number:'CAM-GMT800-COMP-XER-60L',brand:'Comp Cams',line_name:'XER Hydraulic Roller 6.0L',product_type:'Camshaft Kit',diameter_inches:0.0,material:'Billet Steel',base_price_usd:699.99},null,[
+    {yearRange:[2001,2007],pairs:[{make:'Chevrolet',model:'Silverado 2500HD'},{make:'GMC',model:'Sierra 2500HD'}],engines:['6.0L'],drivetrains:['2WD','4WD']},
+    {yearRange:[2001,2006],pairs:[{make:'Chevrolet',model:'Suburban 2500'}],engines:['6.0L'],drivetrains:['2WD','4WD']},
+  ]);
+  insertGMT({part_number:'CAM-GMT800-LUNATI-VOODOO-53',brand:'Lunati',line_name:'Voodoo Series Truck Cam',product_type:'Camshaft Kit',diameter_inches:0.0,material:'Billet Steel',base_price_usd:579.99},null,[
+    {yearRange:[1999,2006],pairs:[{make:'Chevrolet',model:'Silverado 1500'},{make:'GMC',model:'Sierra 1500'}],engines:['4.8L','5.3L'],drivetrains:['2WD','4WD']},
+  ]);
+  insertGMT({part_number:'CAM-GMT800-TSP-STAGE3-60L',brand:'Texas Speed',line_name:'Stage 3 Heavy Duty Cam',product_type:'Camshaft Kit',diameter_inches:0.0,material:'Billet Steel',base_price_usd:749.99},null,[
+    {yearRange:[2001,2007],pairs:[{make:'Chevrolet',model:'Silverado 2500HD'},{make:'GMC',model:'Sierra 2500HD'},{make:'Chevrolet',model:'Silverado 3500'},{make:'GMC',model:'Sierra 3500'}],engines:['6.0L'],drivetrains:['2WD','4WD']},
+  ]);
+  insertGMT({part_number:'CAM-GMT800-MOTION-RACE-48',brand:'Cam Motion',line_name:'Race Series 4.8L Stroker',product_type:'Camshaft Kit',diameter_inches:0.0,material:'Billet Steel',base_price_usd:829.99},null,[
+    {yearRange:[1999,2006],pairs:[{make:'Chevrolet',model:'Silverado 1500'},{make:'GMC',model:'Sierra 1500'}],engines:['4.8L'],drivetrains:['2WD','4WD']},
+  ]);
+
+  // Supercharger Kits
+  insertGMT({part_number:'SC-GMT800-MAGNUSON-TVS1900',brand:'Magnuson',line_name:'TVS1900 Truck Supercharger',product_type:'Supercharger Kit',diameter_inches:0.0,material:'Cast Aluminum',base_price_usd:5499.99},null,[
+    {yearRange:[2002,2006],pairs:[{make:'Chevrolet',model:'Silverado 1500'},{make:'GMC',model:'Sierra 1500'}],engines:['5.3L'],drivetrains:['2WD','4WD']},
+  ]);
+  insertGMT({part_number:'SC-GMT800-EDEL-EFORCE-53',brand:'Edelbrock',line_name:'E-Force Stage 1 5.3L',product_type:'Supercharger Kit',diameter_inches:0.0,material:'Cast Aluminum',base_price_usd:5999.99},null,[
+    {yearRange:[2002,2006],pairs:[{make:'Chevrolet',model:'Silverado 1500'},{make:'GMC',model:'Sierra 1500'}],engines:['5.3L'],drivetrains:['2WD','4WD']},
+    {yearRange:[2002,2006],pairs:[{make:'Chevrolet',model:'Tahoe'},{make:'Chevrolet',model:'Suburban 1500'}],engines:['5.3L'],drivetrains:['2WD','4WD']},
+  ]);
+  insertGMT({part_number:'SC-GMT800-PROCHARGER-D1SC',brand:'Procharger',line_name:'D1SC Head Unit Kit',product_type:'Supercharger Kit',diameter_inches:0.0,material:'Billet Aluminum',base_price_usd:4299.99},null,[
+    {yearRange:[1999,2006],pairs:[{make:'Chevrolet',model:'Silverado 1500'},{make:'GMC',model:'Sierra 1500'}],engines:['4.8L','5.3L'],drivetrains:['2WD']},
+    {yearRange:[1999,2006],pairs:[{make:'Chevrolet',model:'Silverado 1500'},{make:'GMC',model:'Sierra 1500'}],engines:['4.8L','5.3L'],drivetrains:['4WD'],clash:{clash_detected:1,clash_level:1,clash_variable:'front_diff_clearance',clash_value:22.0,clash_tolerance:28.0,clash_delta_mm:-6.0}},
+  ]);
+  insertGMT({part_number:'SC-GMT800-MAGNUSON-TVS2300-60L',brand:'Magnuson',line_name:'TVS2300 HD Supercharger',product_type:'Supercharger Kit',diameter_inches:0.0,material:'Cast Aluminum',base_price_usd:6799.99},null,[
+    {yearRange:[2001,2007],pairs:[{make:'Chevrolet',model:'Silverado 2500HD'},{make:'GMC',model:'Sierra 2500HD'}],engines:['6.0L'],drivetrains:['2WD','4WD']},
+  ]);
+
+  // Transmissions
+  insertGMT({part_number:'TR-GMT800-4L80E-PERF',brand:'Performance Automatic',line_name:'4L80-E Street/Strip',product_type:'Transmission',diameter_inches:0.0,material:'Aluminum/Steel',base_price_usd:2899.99},null,[
+    {yearRange:[1999,2007],pairs:[{make:'Chevrolet',model:'Silverado 2500HD'},{make:'GMC',model:'Sierra 2500HD'},{make:'Chevrolet',model:'Silverado 3500'},{make:'GMC',model:'Sierra 3500'}],engines:['6.0L','8.1L'],drivetrains:['2WD','4WD']},
+  ]);
+  insertGMT({part_number:'TR-GMT800-4L60E-BUILT',brand:'Gearstar Performance',line_name:'Level 3 4L60-E',product_type:'Transmission',diameter_inches:0.0,material:'Aluminum/Steel',base_price_usd:2199.99},null,[
+    {yearRange:[1999,2006],pairs:[{make:'Chevrolet',model:'Silverado 1500'},{make:'GMC',model:'Sierra 1500'}],engines:['4.8L','5.3L'],drivetrains:['2WD','4WD']},
+  ]);
+  insertGMT({part_number:'TR-GMT800-TREMEC-T56-LS',brand:'TREMEC',line_name:'T56 Magnum LS Swap',product_type:'Transmission',diameter_inches:0.0,material:'Aluminum/Steel',base_price_usd:4299.99},null,[
+    {yearRange:[1999,2006],pairs:[{make:'Chevrolet',model:'Silverado 1500'},{make:'GMC',model:'Sierra 1500'}],engines:['5.3L','6.0L'],drivetrains:['2WD']},
+    {yearRange:[1999,2006],pairs:[{make:'Chevrolet',model:'Silverado 1500'},{make:'GMC',model:'Sierra 1500'}],engines:['5.3L','6.0L'],drivetrains:['4WD'],clash:{clash_detected:1,clash_level:2,clash_variable:'transmission_tunnel_4WD_conflict',clash_value:null,clash_tolerance:null,clash_delta_mm:18.0}},
+  ]);
+  insertGMT({part_number:'TR-GMT800-ALLISON-1000-REMAN',brand:'Jasper Engines',line_name:'Allison 1000 Remanufactured',product_type:'Transmission',diameter_inches:0.0,material:'Aluminum/Steel',base_price_usd:3499.99},null,[
+    {yearRange:[2001,2007],pairs:[{make:'Chevrolet',model:'Silverado 2500HD'},{make:'GMC',model:'Sierra 2500HD'},{make:'Chevrolet',model:'Silverado 3500'},{make:'GMC',model:'Sierra 3500'}],engines:['6.6L','6.0L'],drivetrains:['2WD','4WD']},
+  ]);
+
   // Seed admin account — survives all redeploys
   db.run(`
     INSERT OR IGNORE INTO shops
@@ -255,7 +436,7 @@ db.serialize(() => {
   });
 
   db.run('SELECT 1', () => {
-    console.log('[ApexFitment] Database initialized: 19 products, 6 labor rate categories, fitment matrix loaded.');
+    console.log('[ApexFitment] Database initialized: 54 products (19 muscle + 35 GMT800), 6 labor rate categories, fitment matrix loaded.');
     console.log('[ApexFitment] Schema: shops, quotes_history, labor_rates, products (with shop_id), exhaust_fitment (with clash columns).');
     db.close();
   });
