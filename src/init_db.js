@@ -234,6 +234,26 @@ db.serialize(() => {
     { year: 2019, make: 'Dodge', model: 'Challenger', payload_chassis: 'SRT Hellcat', cab_type: null, bed_length: null, engine_displacement: '6.2L', drivetrain: null }
   );
 
+  // Seed admin account — survives all redeploys
+  db.run(`
+    INSERT OR IGNORE INTO shops
+    (clerk_user_id, shop_name, owner_name, email, status, plan)
+    VALUES (
+      'user_3E3OfwVriqSqf1KCtisnKWC20ZD',
+      'ApexFitment HQ',
+      'Emiliano Silva',
+      'theapexfitment@gmail.com',
+      'active',
+      'admin'
+    )
+  `, function (err) {
+    if (err) {
+      console.error('[ApexFitment] Admin seed error:', err.message);
+    } else {
+      console.log('[ApexFitment] Admin account verified.');
+    }
+  });
+
   db.run('SELECT 1', () => {
     console.log('[ApexFitment] Database initialized: 19 products, 6 labor rate categories, fitment matrix loaded.');
     console.log('[ApexFitment] Schema: shops, quotes_history, labor_rates, products (with shop_id), exhaust_fitment (with clash columns).');
