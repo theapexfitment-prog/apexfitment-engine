@@ -260,6 +260,33 @@ function runQuoteQuery(params, product_type_filter, selected_part_numbers, shop,
 }
 
 // ---------------------------------------------------------------------------
+// TEMPORARY — remove after Railway admin setup
+// ---------------------------------------------------------------------------
+app.get('/setup-admin', async (req, res) => {
+  const secret = req.query.secret;
+  if (secret !== 'ApexFitment2026AdminSetup') {
+    return res.status(403).json({ error: 'Forbidden' });
+  }
+
+  const clerkUserId = req.query.clerk_id;
+  if (!clerkUserId) {
+    return res.status(400).json({ error: 'clerk_id required' });
+  }
+
+  db.run(
+    `INSERT OR REPLACE INTO shops
+     (clerk_user_id, shop_name, owner_name, email, status, plan)
+     VALUES (?, 'ApexFitment HQ', 'Emiliano Silva',
+             'theapexfitment@gmail.com', 'active', 'admin')`,
+    [clerkUserId],
+    function (err) {
+      if (err) return res.status(500).json({ error: err.message });
+      res.json({ status: 'ok', message: 'Admin created', shop_id: this.lastID });
+    }
+  );
+});
+
+// ---------------------------------------------------------------------------
 // POST /quote (protected)
 // ---------------------------------------------------------------------------
 app.post('/quote', requireAuth, requireShop, (req, res) => {
