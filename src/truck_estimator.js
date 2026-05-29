@@ -8,6 +8,8 @@ const path     = require('path');
 const { generateQuotePdf }      = require('./pdf_generator');
 const { calculateFrictionScore } = require('./friction_score');
 const { requireAuth, requireShop, requireAdmin } = require('./middleware/auth');
+const { generateVerificationId, buildVerificationPage, buildNotFoundPage } = require('./verification');
+const QRCode = require('qrcode');
 
 const PORT    = process.env.PORT || 3000;
 const DB_PATH = process.env.DATABASE_PATH
@@ -285,9 +287,10 @@ app.post('/quote', requireAuth, requireShop, (req, res) => {
       return res.status(404).json({ status: 'NO_QUOTE', message: 'No compatible parts found for this build configuration.' });
     }
 
-    // Save to quotes_history (fire-and-forget)
     const s = quoteData.summary;
     const b = quoteData.build;
+
+    // Save to quotes_history (fire-and-forget)
     db.run(
       `INSERT INTO quotes_history (shop_id, vehicle_year, vehicle_make, vehicle_model, vehicle_engine, parts_total, labor_total, grand_total, line_items_json)
        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`,
@@ -296,6 +299,28 @@ app.post('/quote', requireAuth, requireShop, (req, res) => {
        JSON.stringify(quoteData.line_items)],
       (histErr) => { if (histErr) console.error('[ApexFitment] quotes_history write error:', histErr.message); }
     );
+
+    // Generate verification record
+    const verificationId = generateVerificationId();
+    db.run(
+      `INSERT INTO verified_builds
+       (verification_id, shop_id, vehicle_year, vehicle_make, vehicle_model, vehicle_submodel,
+        vehicle_engine, vehicle_drivetrain, line_items_json, parts_total, labor_total,
+        fabrication_total, grand_total, friction_score, friction_label, variables_count)
+       VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)`,
+      [verificationId, req.shop.shop_id, b.year, b.make, b.model, b.payload_chassis || null,
+       b.engine_displacement || null, b.drivetrain || null,
+       JSON.stringify(quoteData.line_items),
+       s.parts_total_usd, s.labor_total_usd, s.fabrication_total_usd || 0, s.grand_total_usd,
+       quoteData.friction?.score ?? null, quoteData.friction?.complexity_label ?? null, 8],
+      (vErr) => { if (vErr) console.error('[ApexFitment] verified_builds write error:', vErr.message); }
+    );
+
+    quoteData.verification = {
+      id:         verificationId,
+      public_url: `https://apexfitment.com/verify/${verificationId}`,
+      qr_url:     `/api/qr/${verificationId}`,
+    };
 
     return res.status(200).json(quoteData);
   });
@@ -312,7 +337,7 @@ app.post('/export-pdf', requireAuth, requireShop, (req, res) => {
   const product_type_filter   = req.body?.product_type_filter   ?? null;
   const selected_part_numbers = req.body?.selected_part_numbers ?? null;
 
-  runQuoteQuery(params, product_type_filter, selected_part_numbers, req.shop, (err, quoteData) => {
+  runQuoteQuery(params, product_type_filter, selected_part_numbers, req.shop, async (err, quoteData) => {
     if (err) {
       console.error('[ApexFitment] /export-pdf query error:', err.message);
       return res.status(500).json({ error: 'QUERY_EXECUTION_FAILURE', detail: 'Internal fitment engine error.' });
@@ -320,6 +345,36 @@ app.post('/export-pdf', requireAuth, requireShop, (req, res) => {
     if (!quoteData) {
       return res.status(404).json({ status: 'NO_QUOTE', message: 'No compatible parts found for this build configuration.' });
     }
+
+    const verificationId = generateVerificationId();
+    const publicUrl      = `https://apexfitment.com/verify/${verificationId}`;
+
+    let qrBuffer = null;
+    try {
+      qrBuffer = await QRCode.toBuffer(publicUrl, {
+        errorCorrectionLevel: 'H', width: 200, margin: 2,
+        color: { dark: '#00d4ff', light: '#FFFFFF' },
+      });
+    } catch (qrErr) {
+      console.error('[ApexFitment] QR generation failed:', qrErr.message);
+    }
+
+    const b = quoteData.build, s = quoteData.summary;
+    db.run(
+      `INSERT INTO verified_builds
+       (verification_id, shop_id, vehicle_year, vehicle_make, vehicle_model, vehicle_submodel,
+        vehicle_engine, vehicle_drivetrain, line_items_json, parts_total, labor_total,
+        fabrication_total, grand_total, friction_score, friction_label, variables_count)
+       VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)`,
+      [verificationId, req.shop.shop_id, b.year, b.make, b.model, b.payload_chassis || null,
+       b.engine_displacement || null, b.drivetrain || null,
+       JSON.stringify(quoteData.line_items),
+       s.parts_total_usd, s.labor_total_usd, s.fabrication_total_usd || 0, s.grand_total_usd,
+       quoteData.friction?.score ?? null, quoteData.friction?.complexity_label ?? null, 8],
+      (vErr) => { if (vErr) console.error('[ApexFitment] verified_builds write error:', vErr.message); }
+    );
+
+    quoteData.verification = { id: verificationId, public_url: publicUrl, qr_buffer: qrBuffer };
 
     const { make, model, year } = quoteData.build;
     const safeName = [make, model, year].map(v => String(v || '').replace(/\s+/g, '-')).join('-');
@@ -434,6 +489,46 @@ app.post('/admin/shops/:id/suspend', requireAuth, requireShop, requireAdmin, (re
 });
 
 // ---------------------------------------------------------------------------
+// GET /verify/:verification_id — public build verification page (no auth)
+// ---------------------------------------------------------------------------
+app.get('/verify/:verification_id', (req, res) => {
+  const vid = req.params.verification_id;
+  if (!/^AF-\d{4}-[A-Z2-9]{6}$/.test(vid)) {
+    return res.status(404).send(buildNotFoundPage(vid));
+  }
+  db.get(
+    `SELECT vb.*, s.shop_name, s.city, s.state
+     FROM verified_builds vb JOIN shops s ON s.shop_id = vb.shop_id
+     WHERE vb.verification_id = ?`,
+    [vid],
+    (err, row) => {
+      if (err || !row) return res.status(404).send(buildNotFoundPage(vid));
+      res.setHeader('Content-Type', 'text/html; charset=utf-8');
+      res.send(buildVerificationPage(row));
+    }
+  );
+});
+
+// ---------------------------------------------------------------------------
+// GET /api/qr/:verification_id — QR code PNG (no auth)
+// ---------------------------------------------------------------------------
+app.get('/api/qr/:verification_id', async (req, res) => {
+  const vid = req.params.verification_id;
+  try {
+    const buffer = await QRCode.toBuffer(
+      `https://apexfitment.com/verify/${encodeURIComponent(vid)}`,
+      { errorCorrectionLevel: 'H', width: 400, margin: 2, color: { dark: '#00d4ff', light: '#0a0a0f' } }
+    );
+    res.setHeader('Content-Type', 'image/png');
+    res.setHeader('Cache-Control', 'public, max-age=86400');
+    res.send(buffer);
+  } catch (err) {
+    console.error('[ApexFitment] QR generation error:', err.message);
+    res.status(500).send('QR generation failed');
+  }
+});
+
+// ---------------------------------------------------------------------------
 // Health-check (public)
 // ---------------------------------------------------------------------------
 app.get('/health', (_req, res) => res.json({ status: 'ok', service: 'apexfitment-core' }));
@@ -444,5 +539,6 @@ app.get('/health', (_req, res) => res.json({ status: 'ok', service: 'apexfitment
 app.listen(PORT, () => {
   console.log(`[ApexFitment] Server listening at http://localhost:${PORT}`);
   console.log(`[ApexFitment] Endpoints: POST /webhook/sms  POST /quote  POST /export-pdf`);
+  console.log(`[ApexFitment] Public:    GET /verify/:id  GET /api/qr/:id`);
   console.log(`[ApexFitment] Auth: POST /auth/register  GET /auth/me  GET|PUT /shop/settings  GET /shop/history`);
 });

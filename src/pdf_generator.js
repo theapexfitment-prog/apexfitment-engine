@@ -64,13 +64,23 @@ function generateQuotePdf(quoteData, shop, outputStream) {
   doc.font('Helvetica-Bold').fontSize(20).fillColor(C.darkBg).text(shopName, L, y);
   doc.font('Helvetica').fontSize(9).fillColor(C.gray).text(shopCity, L, y + 26);
 
-  // Blueprint meta (right)
+  // QR code — top-right corner of header (44×44, cyan-on-white for print)
+  const vrf = quoteData.verification;
+  const qrX = R - 50;
+  if (vrf?.qr_buffer) {
+    doc.image(vrf.qr_buffer, qrX, y, { width: 44, height: 44 });
+    doc.font('Helvetica').fontSize(5.5).fillColor(C.gray)
+       .text('Verify online', qrX, y + 46, { width: 44, align: 'center', lineBreak: false });
+  }
+
+  // Blueprint meta (right) — width reduced to leave room for QR
+  const metaW = vrf?.qr_buffer ? W - 56 : W;
   doc.font('Helvetica-Bold').fontSize(11).fillColor(C.dark)
-     .text('ENGINEERING FITMENT BLUEPRINT', L, y, { width: W, align: 'right' });
+     .text('ENGINEERING FITMENT BLUEPRINT', L, y, { width: metaW, align: 'right' });
   doc.font('Courier-Bold').fontSize(9).fillColor(C.accent)
-     .text(bn, L, y + 16, { width: W, align: 'right' });
+     .text(bn, L, y + 16, { width: metaW, align: 'right' });
   doc.font('Helvetica').fontSize(8).fillColor(C.gray)
-     .text(`${dateStr}  ${timeStr}`, L, y + 28, { width: W, align: 'right' });
+     .text(`${dateStr}  ${timeStr}`, L, y + 28, { width: metaW, align: 'right' });
 
   // Separator
   y = 88;
@@ -281,6 +291,18 @@ function generateQuotePdf(quoteData, shop, outputStream) {
 
   doc.font('Helvetica').fontSize(7).fillColor(C.gray)
      .text(`All prices in USD · Labor rate: ${fmtUSD(shop?.labor_rate || 125)}/hr`, SX, gtY + 18, { width: SW, align: 'right' });
+
+  // ── VERIFICATION ID BLOCK ─────────────────────────────────────────────────
+  if (vrf?.id) {
+    const VY = 616;
+    doc.moveTo(L, VY).lineTo(R, VY).strokeColor(C.border).lineWidth(0.3).stroke();
+    doc.font('Helvetica-Bold').fontSize(6.5).fillColor(C.gray)
+       .text('VERIFICATION ID', L, VY + 6, { width: W, align: 'center', characterSpacing: 1.5 });
+    doc.font('Courier-Bold').fontSize(11).fillColor(C.accent)
+       .text(vrf.id, L, VY + 18, { width: W, align: 'center', lineBreak: false });
+    doc.font('Helvetica').fontSize(7.5).fillColor(C.gray)
+       .text(`Verify at: apexfitment.com/verify/${vrf.id}`, L, VY + 32, { width: W, align: 'center', lineBreak: false });
+  }
 
   // ── LEGAL DISCLAIMER ──────────────────────────────────────────────────────
   const DY = 660;

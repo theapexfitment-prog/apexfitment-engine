@@ -191,6 +191,29 @@ db.serialize(() => {
     )
   `);
 
+  // ── verified_builds ────────────────────────────────────────────────────────
+  db.run(`
+    CREATE TABLE IF NOT EXISTS verified_builds (
+      verification_id    TEXT    PRIMARY KEY,
+      shop_id            INTEGER NOT NULL REFERENCES shops(shop_id),
+      vehicle_year       INTEGER,
+      vehicle_make       TEXT,
+      vehicle_model      TEXT,
+      vehicle_submodel   TEXT,
+      vehicle_engine     TEXT,
+      vehicle_drivetrain TEXT,
+      line_items_json    TEXT,
+      parts_total        REAL,
+      labor_total        REAL,
+      fabrication_total  REAL,
+      grand_total        REAL,
+      friction_score     REAL,
+      friction_label     TEXT,
+      variables_count    INTEGER DEFAULT 8,
+      created_at         TEXT    DEFAULT (datetime('now'))
+    )
+  `);
+
   // ── Products 1-3 (GMT800 originals) ───────────────────────────────────────
   insertProduct(
     { part_number: '15795',    brand: 'Magnaflow', line_name: 'Street Series',    product_type: 'Cat-Back',          diameter_inches: 3.0,   material: 'Stainless Steel',       base_price_usd: 489.99  },
@@ -437,7 +460,7 @@ db.serialize(() => {
 
   db.run('SELECT 1', () => {
     console.log('[ApexFitment] Database initialized: 54 products (19 muscle + 35 GMT800), 6 labor rate categories, fitment matrix loaded.');
-    console.log('[ApexFitment] Schema: shops, quotes_history, labor_rates, products (with shop_id), exhaust_fitment (with clash columns).');
+    console.log('[ApexFitment] Schema: shops, quotes_history, labor_rates, products, exhaust_fitment, verified_builds.');
     db.close();
   });
 });
